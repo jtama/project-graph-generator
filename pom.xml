@@ -19,7 +19,7 @@
         <!-- Code format -->
         <version.formatter.plugin>2.26.0</version.formatter.plugin>
         <version.impsort.plugin>1.12.0</version.impsort.plugin>
-        <version.quarkus.ide-config>3.0.0.Final</version.quarkus.ide-config>
+        <version.quarkus.ide-config>3.29.3</version.quarkus.ide-config>
         <format.skip>false</format.skip>
     </properties>
 
