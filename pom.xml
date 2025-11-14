@@ -17,7 +17,7 @@
         <maven.compiler.source>${maven.compiler.release}</maven.compiler.source>
         <maven.compiler.target>${maven.compiler.release}</maven.compiler.target>
         <!-- Code format -->
-        <version.formatter.plugin>2.26.0</version.formatter.plugin>
+        <version.formatter.plugin>2.29.0</version.formatter.plugin>
         <version.impsort.plugin>1.12.0</version.impsort.plugin>
         <version.quarkus.ide-config>3.0.0.Final</version.quarkus.ide-config>
         <format.skip>false</format.skip>
