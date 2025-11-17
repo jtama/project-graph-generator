@@ -1,5 +1,7 @@
 = Generate marvelous aerial view of your project !
 
+image:https://img.shields.io/maven-central/v/io.github.jtama/project-graph-generator.svg?label=Maven%20Central[Maven Central, link=https://search.maven.org/artifact/io.github.jtama/project-graph-generator] image:https://img.shields.io/badge/License-Apache%202.0-blue.svg[License,https://opensource.org/licenses/Apache-2.0] image:https://github.com/jtama/project-graph-generator/workflows/EarlyAccess/badge.svg[Build, link=https://github.com/jtama/project-graph-generator/actions?query=workflow%3AEarlyAccess]
+
 The recipe will try to autodetect the base package of your project.
 
 == Available options
@@ -16,7 +18,7 @@ With default options
 ----
 mvn -U org.openrewrite.maven:rewrite-maven-plugin:run \
 -Drewrite.recipeArtifactCoordinates=io.github.jtama:app-graph-generator:1.0.1-SNAPSHOT \
--Drewrite.activeRecipes=com.github.jtama.openrewrite.ProjectAerialViewGenerator
+-Drewrite.activeRecipes=io.github.jtama.openrewrite.ProjectAerialViewGenerator
 ----
 
 With full options
