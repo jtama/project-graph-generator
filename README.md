@@ -6,7 +6,7 @@
 
 The recipe will try to autodetect the base package of your project.
 
-## Available options[trace.log](../../../../Downloads/jreleaser-logs%281%29/trace.log)
+## Available options
 
 * **`maxNodes`**: The maximum number of nodes in the final graph. Will drop the nodes with less weight
 * **`basePackages`**: A list of comma separated package names which contain the targeted classes.

@@ -1,28 +1,4 @@
 {
-  "files": [
-    "README.md"
-  ],
-  "imageSize": 100,
-  "commit": false,
-  "contributors": [
-    {
-      "login": "jtama",
-      "name": "jtama",
-      "avatar_url": "https://avatars0.githubusercontent.com/u/39991688?v=4",
-      "profile": "https://github.com/jtama",
-      "contributions": [
-        "code",
-        "maintenance",
-        "doc"
-      ]
-    }
-  ],
-  "contributorsPerLine": 7,
   "projectName": "project-graph-generator",
   "projectOwner": "jtama",
-  "repoType": "github",
-  "repoHost": "https://github.com",
-  "skipCi": true,
-  "commitConvention": "angular",
-  "commitType": "docs"
 }

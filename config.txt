@@ -1,0 +1,395 @@
+[INFO]  JReleaser 1.21.0
+[INFO]  Configuring with jreleaser.yml
+[INFO]    - basedir set to /Users/j.tama/projects/github/jtama/project-graph-generator
+[INFO]    - outputdir set to /Users/j.tama/projects/github/jtama/project-graph-generator/out/jreleaser
+[INFO]  Reading configuration
+[INFO]  git-root-search set to false
+[INFO]  Loading variables from /Users/j.tama/.jreleaser/config.toml
+[INFO]  Loading variables from /Users/j.tama/projects/github/jtama/project-graph-generator/.env
+[INFO]  Validating configuration
+[INFO]  Strict mode set to false
+[WARN]    [validation] Deployer mavenCentral.release-deploy disabled because project is snapshot
+[INFO]  Project version set to 1.0.1-SNAPSHOT
+[INFO]  Release is snapshot
+[INFO]  Timestamp is 2025-11-19T14:31:27.362074+01:00
+[INFO]  HEAD is at a13c2b9
+[INFO]  Platform is osx-aarch_64
+hooks:
+    enabled: true
+    active: ALWAYS
+    condition: "{{ Env.CI }}" == true
+    command:
+        enabled: false
+        active: NEVER
+    jbang:
+        enabled: false
+        active: NEVER
+    script:
+        enabled: true
+        active: ALWAYS
+        before:
+            hook 0:
+                enabled: true
+                active: ALWAYS
+                continueOnError: false
+                verbose: false
+                filter:
+                    includes:
+                        session
+                applyDefaultMatrix: false
+                shell: BASH
+                run: echo "### {{command}}" >> $GITHUB_STEP_SUMMARY
+echo "| Step | Outcome |" >> $GITHUB_STEP_SUMMARY
+echo "| ---- | ------- |" >> $GITHUB_STEP_SUMMARY
+
+        success:
+            hook 0:
+                enabled: true
+                active: ALWAYS
+                continueOnError: false
+                verbose: false
+                filter:
+                    excludes:
+                        session
+                applyDefaultMatrix: false
+                shell: BASH
+                run: echo "| {{event.name}} | :white_check_mark: |" >> $GITHUB_STEP_SUMMARY
+            hook 1:
+                enabled: true
+                active: ALWAYS
+                continueOnError: false
+                verbose: false
+                filter:
+                    includes:
+                        session
+                applyDefaultMatrix: false
+                shell: BASH
+                run: echo "" >> $GITHUB_STEP_SUMMARY
+        failure:
+            hook 0:
+                enabled: true
+                active: ALWAYS
+                continueOnError: false
+                verbose: false
+                filter:
+                    excludes:
+                        session
+                applyDefaultMatrix: false
+                shell: BASH
+                run: echo "| {{event.name}} | :x: |" >> $GITHUB_STEP_SUMMARY
+            hook 1:
+                enabled: true
+                active: ALWAYS
+                continueOnError: false
+                verbose: false
+                filter:
+                    includes:
+                        session
+                applyDefaultMatrix: false
+                shell: BASH
+                run: echo "" >> $GITHUB_STEP_SUMMARY
+echo "### Failure" >> $GITHUB_STEP_SUMMARY
+echo "\`\`\`" >> $GITHUB_STEP_SUMMARY
+echo "{{event.stacktrace}}\`\`\`" >> $GITHUB_STEP_SUMMARY
+echo "" >> $GITHUB_STEP_SUMMARY
+
+ 
+project:
+    name: project-graph-generator
+    version: 1.0.1-SNAPSHOT
+    versionPattern: SEMVER
+    snapshot:
+        enabled: true
+        pattern: .*-SNAPSHOT
+        label: early-access
+        fullChangelog: false
+    description: JTama - Java project graph generator
+    longDescription: Generates internal dependency interactive diagram
+    license: Apache-2.0
+    inceptionYear: 2025
+    authors:
+        Jérôme Tama
+    stereotype: NONE
+    links:
+        homepage: https://github.com/jtama/project-graph-generator
+        documentation: https://github.com/jtama/project-graph-generator
+        license: https://spdx.org/licenses/Apache-2.0.html
+        bugTracker: https://{{repoHost}}/{{repoOwner}}/{{repoName}}/issues
+        vcsBrowser: https://{{repoHost}}/{{repoOwner}}/{{repoName}}
+    extraProperties:
+        versionMajor: 1
+        versionMinor: 0
+        versionPatch: 1
+        versionNumber: 1.0.1
+        versionTag: SNAPSHOT
+        versionWithUnderscores: 1_0_1_SNAPSHOT
+        versionWithDashes: 1-0-1-SNAPSHOT
+        versionNumberWithUnderscores: 1_0_1
+        versionNumberWithDashes: 1-0-1
+        effectiveVersionWithUnderscores: early_access
+        effectiveVersionWithDashes: early-access
+    languages:
+        java:
+            enabled: true
+            version: 21
+            groupId: io.github.jtama
+            artifactId: project-graph-generator
+            jvmOptions:
+            environmentVariables:
+            multiProject: false
+ 
+release:
+    github:
+        enabled: true
+        host: github.com
+        owner: jtama
+        name: project-graph-generator
+        username: jtama
+        token: ************
+        uploadAssets: ALWAYS
+        artifacts: true
+        files: true
+        checksums: true
+        catalogs: true
+        signatures: true
+        repoUrl: https://{{repoHost}}/{{repoOwner}}/{{repoName}}
+        repoCloneUrl: https://{{repoHost}}/{{repoOwner}}/{{repoName}}.git
+        commitUrl: https://{{repoHost}}/{{repoOwner}}/{{repoName}}/commits
+        srcUrl: https://{{repoHost}}/{{repoOwner}}/{{repoName}}/blob/{{repoBranch}}
+        downloadUrl: https://{{repoHost}}/{{repoOwner}}/{{repoName}}/releases/download/{{tagName}}/{{artifactFile}}
+        releaseNotesUrl: https://{{repoHost}}/{{repoOwner}}/{{repoName}}/releases/tag/{{tagName}}
+        latestReleaseUrl: https://{{repoHost}}/{{repoOwner}}/{{repoName}}/releases/latest
+        issueTrackerUrl: https://{{repoHost}}/{{repoOwner}}/{{repoName}}/issues
+        tagName: v{{projectVersion}}
+        releaseName: Release {{tagName}}
+        branch: cmd-gradle
+        branchPush: cmd-gradle
+        commitAuthor:
+            name: jreleaserbot
+            email: jreleaser@kordamp.org
+        sign: false
+        skipTag: false
+        skipRelease: false
+        overwrite: true
+        update:
+            enabled: false
+        apiEndpoint: https://api.github.com
+        connectTimeout: 20
+        readTimeout: 60
+        changelog:
+            enabled: true
+            append:
+                enabled: false
+            links: false
+            skipMergeCommits: true
+            sort: DESC
+            formatted: ALWAYS
+            preset: conventional-commits
+            format: - {{commitShortHash}} {{#commitIsConventional}}{{#conventionalCommitIsBreakingChange}}🚨 {{/conventionalCommitIsBreakingChange}}{{#conventionalCommitScope}}**{{conventionalCommitScope}}**: {{/conventionalCommitScope}}{{conventionalCommitDescription}}{{#conventionalCommitBreakingChangeContent}} - *{{conventionalCommitBreakingChangeContent}}*{{/conventionalCommitBreakingChangeContent}}{{/commitIsConventional}}{{^commitIsConventional}}{{commitTitle}}{{/commitIsConventional}}{{#commitHasIssues}}, closes{{#commitIssues}} {{issue}}{{/commitIssues}}{{/commitHasIssues}}
+            categoryTitleFormat: ## {{categoryTitle}}
+            contributorsTitleFormat: ## Contributors
+            content: 
+## Changelog
+
+{{changelogChanges}}
+    {{changelogContributors}}
+            hide:
+                categories:
+                    merge
+                contributors:
+                    GitHub Action
+                    [bot]
+                    GitHub
+            contributors:
+                enabled: true
+            categories:
+                category 0:
+                    key: merge
+                    title: 🔀 Merge
+                    labels:
+                        merge
+                    order: 0
+                category 1:
+                    key: features
+                    title: 🚀 Features
+                    labels:
+                        feat
+                    order: 10
+                category 2:
+                    key: fixes
+                    title: 🐛 Fixes
+                    labels:
+                        fix
+                    order: 20
+                category 3:
+                    key: changes
+                    title: 🔄️ Changes
+                    labels:
+                        revert
+                        style
+                        perf
+                        refactor
+                    order: 30
+                category 4:
+                    key: test
+                    title: 🧪 Tests
+                    labels:
+                        test
+                    order: 35
+                category 5:
+                    key: tasks
+                    title: 🧰 Tasks
+                    labels:
+                        chore
+                    order: 40
+                category 6:
+                    key: build
+                    title: 🛠  Build
+                    labels:
+                        test
+                        build
+                        ci
+                    order: 50
+                category 7:
+                    key: docs
+                    title: 📝 Documentation
+                    labels:
+                        docs
+                    order: 60
+            labelers:
+                labeler 0:
+                    label: merge
+                    title: Merge pull
+                    order: 0
+                labeler 1:
+                    label: merge
+                    title: Merge branch
+                    order: 5
+                labeler 2:
+                    label: build
+                    title: regex:^(?:build(?:\(.*\))?!?):\s.*
+                    order: 10
+                labeler 3:
+                    label: chore
+                    title: regex:^(?:chore(?:\(.*\))?!?):\s.*
+                    order: 20
+                labeler 4:
+                    label: ci
+                    title: regex:^(?:ci(?:\(.*\))?!?):\s.*
+                    order: 30
+                labeler 5:
+                    label: docs
+                    title: regex:^(?:docs(?:\(.*\))?!?):\s.*
+                    order: 40
+                labeler 6:
+                    label: feat
+                    title: regex:^(?:feat(?:\(.*\))?!?):\s.*
+                    order: 50
+                labeler 7:
+                    label: fix
+                    title: regex:^(?:fix(?:\(.*\))?!?):\s.*
+                    order: 60
+                labeler 8:
+                    label: perf
+                    title: regex:^(?:perf(?:\(.*\))?!?):\s.*
+                    order: 70
+                labeler 9:
+                    label: refactor
+                    title: regex:^(?:refactor(?:\(.*\))?!?):\s.*
+                    order: 80
+                labeler 10:
+                    label: revert
+                    title: regex:^(?:revert(?:\(.*\))?!?):\s.*
+                    order: 90
+                labeler 11:
+                    label: style
+                    title: regex:^(?:style(?:\(.*\))?!?):\s.*
+                    order: 100
+                labeler 12:
+                    label: test
+                    title: regex:^(?:test(?:\(.*\))?!?):\s.*
+                    order: 110
+        milestone:
+            name: {{tagName}}
+            close: true
+        issues:
+            enabled: false
+            comment: 🎉 This issue has been resolved in `{{tagName}}` ([Release Notes]({{releaseNotesUrl}}))
+            label:
+                name: released
+                color: #FF0000
+                description: Issue has been released
+        prerelease:
+            enabled: true
+        draft: false
+        immutableRelease: false
+        releaseNotes:
+            enabled: false
+        makeLatest: true
+ 
+checksum:
+    name: checksums.txt
+    individual: false
+    algorithms:
+        SHA_256
+    artifacts: true
+    files: true
+ 
+signing:
+    enabled: true
+    active: ALWAYS
+    armored: true
+    verify: true
+    mode: MEMORY
+    artifacts: true
+    files: true
+    checksums: true
+    catalogs: true
+    passphrase: ************
+    publicKey: ************
+    secretKey: ************
+ 
+deploy:
+    enabled: true
+    active: ALWAYS
+    maven:
+        enabled: true
+        active: ALWAYS
+        pomchecker:
+            version: 1.14.0
+            failOnWarning: true
+            failOnError: true
+            strict: true
+        nexus2:
+            snapshot-deploy:
+                enabled: true
+                active: SNAPSHOT
+                connectTimeout: 20
+                readTimeout: 60
+                authorization: BASIC
+                url: http://fake.acme.com
+                username: ************
+                password: ************
+                sign: true
+                checksums: true
+                sourceJar: true
+                javadocJar: true
+                verifyPom: true
+                applyMavenCentralRules: true
+                snapshotSupported: true
+                stagingRepositories:
+                    target/staging-deploy
+                snapshotUrl: https://central.sonatype.com/repository/maven-snapshots/
+                closeRepository: true
+                releaseRepository: true
+                transitionDelay: 20
+                transitionMaxRetries: 100
+ 
+catalog:
+    enabled: false
+    active: NEVER
+    sbom:
+        enabled: false
+        active: NEVER
+ 
+[INFO]  Writing output properties to out/jreleaser/output.properties
