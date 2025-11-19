@@ -11,49 +11,4 @@
 
 ## Contributors
 We'd like to thank the following people for their contributions:
-Jérôme Tama, dependabot[bot], jtama
-
-## [v1.0.0]
-
-## Changelog
-
-- 22791bb Initiate project from https://github.com/jtama/openrewrite-refactoring-as-code
-
-
-## Contributors
-We'd like to thank the following people for their contributions:
 jtama
-
-## [v1.0.0]
-
-## Changelog
-
-- 22791bb Initiate project from https://github.com/jtama/openrewrite-refactoring-as-code
-
-
-## Contributors
-We'd like to thank the following people for their contributions:
-jtama
-
-## [v1.0.0]
-
-## Changelog
-
-- 22791bb Initiate project from https://github.com/jtama/openrewrite-refactoring-as-code
-
-
-## Contributors
-We'd like to thank the following people for their contributions:
-jtama
-
-## [v1.0.0]
-
-## Changelog
-
-- 22791bb Initiate project from https://github.com/jtama/openrewrite-refactoring-as-code
-
-
-## Contributors
-We'd like to thank the following people for their contributions:
-jtama
-

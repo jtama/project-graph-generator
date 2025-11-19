@@ -5,8 +5,7 @@ on:
     branches: [ main ]
 
 env:
-  GRAAL_DISTRIBUTION: 'mandrel'
-  JAVA_VERSION: '22'
+  JAVA_VERSION: '21'
   JAVA_DISTRO: 'temurin'
 
 jobs:
@@ -55,7 +54,7 @@ jobs:
         uses: jreleaser/release-action@v2
         with:
           version: latest
-          arguments: 'deploy'
+          arguments: 'full-release'
         env:
           JRELEASER_GPG_PUBLIC_KEY: ${{ secrets.GPG_PUBLIC_KEY }}
           JRELEASER_GPG_SECRET_KEY: ${{ secrets.GPG_PRIVATE_KEY }}
@@ -66,6 +65,8 @@ jobs:
           JRELEASER_NEXUS2_TOKEN: ${{ secrets.SONATYPE_PASSWORD }}
           JRELEASER_GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           JRELEASER_PROJECT_VERSION: ${{ needs.precheck.outputs.PAYLOAD_VERSION }}
+          JRELEASER_DRAFT: true
+
         # Persist logs
       - name: JReleaser release output
         if: always()
