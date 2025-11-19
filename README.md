@@ -89,6 +89,14 @@ Thanks goes to these wonderful people ([emoji key](https://allcontributors.org/d
 <!-- ALL-CONTRIBUTORS-LIST:START - Do not remove or modify this section -->
 <!-- prettier-ignore-start -->
 <!-- markdownlint-disable -->
+<table>
+  <tbody>
+    <tr>
+      <td align="center" valign="top" width="14.28%"><a href="https://github.com/jtama"><img src="https://avatars0.githubusercontent.com/u/39991688?v=4?s=100" width="100px;" alt="jtama"/><br /><sub><b>jtama</b></sub></a><br /><a href="https://github.com/jtama/project-graph-generator/commits?author=jtama" title="Code">💻</a> <a href="#maintenance-jtama" title="Maintenance">🚧</a> <a href="https://github.com/jtama/project-graph-generator/commits?author=jtama" title="Documentation">📖</a></td>
+      <td align="center" valign="top" width="14.28%"><a href="https://william-aventin.fr"><img src="https://avatars.githubusercontent.com/u/11073539?v=4?s=100" width="100px;" alt="William AVENTIN"/><br /><sub><b>William AVENTIN</b></sub></a><br /><a href="https://github.com/jtama/project-graph-generator/commits?author=Will33ELS" title="Documentation">📖</a></td>
+    </tr>
+  </tbody>
+</table>
 
 <!-- markdownlint-restore -->
 <!-- prettier-ignore-end -->
