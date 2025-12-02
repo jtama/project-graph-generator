@@ -5,7 +5,7 @@
     <modelVersion>4.0.0</modelVersion>
     <groupId>io.github.jtama</groupId>
     <artifactId>project-graph-generator</artifactId>
-    <version>1.0.2-SNAPSHOT</version>
+    <version>1.0.2</version>
     <name>JTama - Java project graph generator</name>
     <description>Generates internal dependency diagram</description>
     <url>https://github.com/jtama/project-graph-generator</url>
