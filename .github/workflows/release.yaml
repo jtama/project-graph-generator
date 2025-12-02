@@ -18,6 +18,8 @@ jobs:
       NEXT_VERSION: ${{ steps.version.outputs.NEXT_VERSION }}
     steps:
       - uses: actions/checkout@v6
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
       - name: 'Set up Java'
         uses: actions/setup-java@v5
         with:
