@@ -164,7 +164,7 @@ public class ProjectAerialViewGenerator extends ScanningRecipe<ProjectAerialView
             @Override
             public J.@NotNull NewClass visitNewClass(J.@NotNull NewClass newClass, ExecutionContext executionContext) {
                 J.NewClass visitedNewClass = super.visitNewClass(newClass, executionContext);
-                if(visitedNewClass.getMethodType() != null) {
+                if (visitedNewClass.getMethodType() != null) {
                     addLink(visitedNewClass.getMethodType().getDeclaringType());
                 }
                 return visitedNewClass;

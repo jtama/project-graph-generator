@@ -121,7 +121,7 @@
         .attr("class", "legend");
 
     const simulation = d3.forceSimulation()
-        .force("link", d3.forceLink().id(d => d.id).distance(100))
+        .force("link", d3.forceLink().id(d => d.className).distance(100))
         .force("charge", d3.forceManyBody().strength(-50))
         .force("center", d3.forceCenter(width / 2, height / 2))
         // Add community clustering forces
@@ -135,6 +135,8 @@
 
     const defs = svg.append("defs");
 
+    const allGradients = [];
+
     let allLinks = svg.append("g")
         .attr("class", "links")
         .selectAll("line");
@@ -145,7 +147,7 @@
 
     let selectedNode = null;
 
-    let sizeExtractor = node => node.incoming;
+    let sizeExtractor = node => node.incomingConnections;
 
     let myZoom = d3.zoom().on('zoom', handleZoom);
     initZoom();
@@ -178,15 +180,15 @@
 
     d3.select("#search").on("input", function () {
         const searchTerm = this.value.toLowerCase();
-        allNodes.style("opacity", n => n.id.toLowerCase().includes(searchTerm) ? 1 : 0.1);
-        allLinks.style("opacity", l => l.source.id.toLowerCase().includes(searchTerm) || l.target.id.toLowerCase().includes(searchTerm) ? 1 : 0.1);
+        allNodes.style("opacity", n => n.className.toLowerCase().includes(searchTerm) ? 1 : 0.1);
+        allLinks.style("opacity", l => l.source.className.toLowerCase().includes(searchTerm) || l.target.className.toLowerCase().includes(searchTerm) ? 1 : 0.1);
     });
 
     sizeChooser.on("input", function () {
-        if (this.value === "incoming"){
-            sizeExtractor = node => node.incoming;
+        if (this.value === "incoming") {
+            sizeExtractor = node => node.incomingConnections;
         } else {
-            sizeExtractor = node => node.outgoing;
+            sizeExtractor = node => node.outgoingConnections;
         }
         updateVisualization();
     })
@@ -197,11 +199,21 @@
 
         const filteredNodes = originalGraphData.nodes
             .filter(n => sizeExtractor(n) <= maxWeight)
-            .map(({id, group, incoming, outgoing}) => ({id, group, incoming, outgoing}));
-        const filteredNodeIds = new Set(filteredNodes.map(n => n.id));
+            .map(({className, packageName, incomingConnections, outgoingConnections}) => ({
+                className,
+                packageName,
+                incomingConnections,
+                outgoingConnections
+            }));
+        const filteredNodeIds = new Set(filteredNodes.map(n => n.className));
         const filteredLinks = originalGraphData.links
-            .filter(l => filteredNodeIds.has(l.source.id) && filteredNodeIds.has(l.target.id))
-            .map(({source, target, incoming, outgoing}) => ({source: source.id, target: target.id, incoming, outgoing}));
+            .filter(l => filteredNodeIds.has(l.source.className) && filteredNodeIds.has(l.target.className))
+            .map(({source, target, incomingConnections, outgoingConnections}) => ({
+                source: source.className,
+                target: target.className,
+                incomingConnections,
+                outgoingConnections
+            }));
 
         currentNodes = filteredNodes;
         currentLinks = filteredLinks;
@@ -235,12 +247,12 @@
         } else {
             selectedNode = d;
             const linkedNodes = new Set();
-            linkedNodes.add(d.id);
+            linkedNodes.add(d.className);
             currentLinks.forEach(l => {
-                if (l.source.id === d.id) linkedNodes.add(l.target.id);
-                if (l.target.id === d.id) linkedNodes.add(l.source.id);
+                if (l.source === d.className) linkedNodes.add(l.target);
+                if (l.target === d.className) linkedNodes.add(l.source);
             });
-            allLinks.classed('fade', l => l.source.id !== d.id && l.target.id !== d.id);
+            allLinks.classed('fade', l => l.source !== d.className && l.target !== d.className);
         }
     }
 
@@ -256,7 +268,7 @@
     }
 
     function calculateCommunities(nodes, links) {
-        const nodeData = nodes.map(d => d.id);
+        const nodeData = nodes.map(d => d.className);
         const linkData = links.map(l => ({source: l.source, target: l.target, weight: l.weight || 1}));
         if (nodeData.length === 0) return;
 
@@ -264,7 +276,7 @@
         const communityResult = community();
 
         nodes.forEach(node => {
-            node.community = communityResult[node.id];
+            node.community = communityResult[node.className];
         });
     }
 
@@ -308,7 +320,7 @@
     function updateVisualization() {
         // Update nodes
         allNodes = allNodes
-            .data(currentNodes, d => d.id)
+            .data(currentNodes, d => d.className)
             .join(
                 enter => enter.append("circle")
                     .attr("r", d => 5 + sizeExtractor(d) / 2)
@@ -318,7 +330,7 @@
                         .on("end", dragended))
                     .on("mouseover", function (event, d) {
                         tooltip.style("opacity", .9);
-                        tooltip.html(`ID: ${d.id}<br/>Incoming: ${d.incoming}<br/>Outgoing: ${d.outgoing}`)
+                        tooltip.html(`ID: ${d.className}<br/>Incoming connections: ${d.incomingConnections}<br/>Outgoing connections: ${d.outgoingConnections}`)
                             .style("left", (event.pageX + 10) + "px")
                             .style("top", (event.pageY - 28) + "px");
                     })
@@ -334,13 +346,13 @@
 
         // Update links
         allLinks = allLinks
-            .data(currentLinks, d => `${d.source.id}-${d.target.id}`)
+            .data(currentLinks, d => `${d.source}-${d.target}`)
             .join(
                 enter => enter.append("line")
                     .attr("stroke-width", d => 1 + Math.sqrt(d.weight))
                     .on("mouseover", function (event, d) {
                         tooltip.style("opacity", .9);
-                        tooltip.html(`Source: ${d.source.id}<br/>Target: ${d.target.id}<br/>Interactions: ${d.weight}`)
+                        tooltip.html(`Source: ${d.source}<br/>Target: ${d.target}<br/>Interactions: ${d.weight}`)
                             .style("left", (event.pageX + 10) + "px")
                             .style("top", (event.pageY - 28) + "px");
                     })
@@ -351,16 +363,19 @@
                 exit => exit.remove()
             )
             .attr("stroke", d => { // Apply stroke to both enter and update selections
-                const sourceNode = currentNodes.find(n => n.id === d.source.id);
-                const targetNode = currentNodes.find(n => n.id === d.target.id);
+                const sourceNode = currentNodes.find(n => n.className === d.source);
+                const targetNode = currentNodes.find(n => n.className === d.target);
                 if (!sourceNode || !targetNode) return "#ccc";
 
-                const id = `gradient-${sourceNode.id}-${targetNode.id}`.replace(/[^a-zA-Z0-9]/g, "-");
-                const gradient = defs.append("linearGradient")
-                    .attr("id", id)
-                    .attr("x1", "0%").attr("y1", "0%").attr("x2", "100%").attr("y2", "0%");
-                gradient.append("stop").attr("offset", "0%").attr("stop-color", color[sourceNode.community].color);
-                gradient.append("stop").attr("offset", "100%").attr("stop-color", color[targetNode.community].color);
+                const id = `gradient-${sourceNode.community}-${targetNode.community}`.replace(/[^a-zA-Z0-9]/g, "-");
+                if (!allGradients.some(item => item.attr('id') === id)) {
+                    const gradient = defs.append("linearGradient")
+                        .attr("id", id)
+                        .attr("x1", "0%").attr("y1", "0%").attr("x2", "100%").attr("y2", "0%");
+                    gradient.append("stop").attr("offset", "0%").attr("stop-color", color[sourceNode.community].color);
+                    gradient.append("stop").attr("offset", "100%").attr("stop-color", color[targetNode.community].color);
+                    allGradients.push(gradient);
+                }
                 return `url(#${id})`;
             });
 
