@@ -3,17 +3,29 @@
 [![All Contributors](https://img.shields.io/github/all-contributors/jtama/project-graph-generator?color=ee8449&style=flat-square)](#contributors)
 [![Maven Central](https://img.shields.io/maven-central/v/io.github.jtama/project-graph-generator.svg?label=Maven%20Central)](https://search.maven.org/artifact/io.github.jtama/project-graph-generator) [![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](https://opensource.org/licenses/Apache-2.0) [![Build](https://github.com/jtama/project-graph-generator/workflows/EarlyAccess/badge.svg)](https://github.com/jtama/project-graph-generator/actions?query=workflow%3AEarlyAccess)
 
-The recipe will try to autodetect the base package of your project.
+![Small previex](images/project-graph-preview.gif)
 
 ## Available options
 
+None of the following are mandatory.
+
 * **`maxNodes`**: The maximum number of nodes in the final graph. Will drop the nodes with less weight
-* **`basePackages`**: A list of comma separated package names which contain the targeted classes.
-* **`includeTests`**: Whether the test code should be included in the scan or not. Defaults to `false`.
-* **`generateHTMLView`**: Whether the recipe should generate an HTML result. Defaults to `true`.
+* **`basePackages`**: A list of semicolon separated package names included in the scan.
+* **`includeTests`**: Whether the test code should be included in the scan or not.
+* **`generateHTMLView`**: Whether the recipe should generate an HTML result.
 
 This recipe is also able to output its result using [OpenRewrite's data tables](https://docs.openrewrite.org/authoring-recipes/data-tables#step-1-enable-data-table-functionality). If enabled it will produce on csv file
 with the graph nodes, and one with the links.
+
+## Smart default
+
+Here are the following default values : 
+
+* **`maxNodes`**: No limit, all classes found are included in the final scan result
+* **`basePackages`**: The project `groupId`
+* **`includeTests`**: By default, test code is not scanned
+* **`generateHTMLView`**: `true`, setting this to false only makes sense if data table export is enabled.
+
 
 ## How to execute
 
