@@ -37,7 +37,7 @@ With default options
 
 ```console
 mvn -U org.openrewrite.maven:rewrite-maven-plugin:run \
--Drewrite.recipeArtifactCoordinates=io.github.jtama:project-graph-generator:1.0.2 \
+-Drewrite.recipeArtifactCoordinates=io.github.jtama:project-graph-generator:RELEASE \
 -Drewrite.activeRecipes=io.github.jtama.openrewrite.ProjectAerialViewGenerator
 ```
 
@@ -45,7 +45,7 @@ With full options
 
 ```console
 mvn -U org.openrewrite.maven:rewrite-maven-plugin:run \
--Drewrite.recipeArtifactCoordinates=io.github.jtama:project-graph-generator:1.0.2 \
+-Drewrite.recipeArtifactCoordinates=io.github.jtama:project-graph-generator:RELEASE \
 -Drewrite.activeRecipes=io.github.jtama.openrewrite.ProjectAerialViewGenerator \
 -Drewrite.options=maxNodes=8,basePackages=com.foo:io.github.jtama,includeTests=true,generateHTMLView=false,includeTests=true \
 -Drewrite.exportDatatables=true
@@ -53,46 +53,38 @@ mvn -U org.openrewrite.maven:rewrite-maven-plugin:run \
 
 ### With Gradle
 
-It's a bit more complicated.
+1. Configure your project
 
-1. First of all, create a file named `init.gradle` in the root of your project.
-
-```groovy title="init.gradle"
-initscript {
-    repositories {
-        maven { url "https://plugins.gradle.org/m2" }
-    }
-    dependencies { classpath("org.openrewrite:plugin:7.20.0") }
+```groovy title="build.gradle"
+plugins {
+    // add OpenRewrite plugin
+    id 'org.openrewrite.rewrite' version "7.20.0"
 }
-rootProject {
-    plugins.apply(org.openrewrite.gradle.RewritePlugin)
-    dependencies {
-        rewrite("io.github.jtama:project-graph-generator:1.0.0")
-    }
-    rewrite {
-        activeRecipe("io.github.jtama.openrewrite.ProjectAerialViewGenerator")
-        setExportDatatables(true)
-    }
-    afterEvaluate {
-        if (repositories.isEmpty()) {
-            repositories {
-                mavenCentral()
-            }
-        }
-    }
+dependencies {
+    // Add this project as a rewrite dependency to your project
+    rewrite "io.github.jtama:project-graph-generator:RELEASE"
+}
+
+// Add OpenRewrite configuration
+rewrite {
+    // Activate the recipe of this project
+    activeRecipe("io.github.jtama.openrewrite.ProjectAerialViewGenerator")
+    setExportDatatables true
 }
 ```
+
+> More information on how to configure OpenRewrite plugin at [official documentation](https://docs.openrewrite.org/reference/gradle-plugin-configuration).
 
 2. Run the recipe with default values.
 
 ```shell title="shell"
-gradle --init-script init.gradle rewriteRun
+gradle rewriteRun
 ```
 
 2. Run the recipe with full options
 
 ```console
-gradle --init-script init.gradle rewriteRun -Drewrite.options=maxNodes=8,basePackages=com.foo
+gradle rewriteRun -Drewrite.options=maxNodes=8,basePackages=com.foo
 ```
 
 ### Run with pre-release version
