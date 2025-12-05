@@ -30,6 +30,7 @@
         }
 
         .tooltip {
+            z-index: 10;
             position: absolute;
             text-align: left;
             padding: 8px;
@@ -43,6 +44,7 @@
         }
 
         .legend {
+            z-index: 10;
             position: absolute;
             top: 20px;
             right: 20px;
@@ -66,38 +68,51 @@
         }
 
         .search {
-            position: absolute;
-            top: 20px;
-            left: 20px;
-            display: flex;
-            flex-direction: column;
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            grid-gap: 2em;
             background-color: rgba(255, 255, 255, 0.8);
             padding: 10px;
             border-radius: 8px;
         }
 
-        .search input {
-            margin-bottom: 5px;
-        }
-
-        .range-filter {
-            display: flex;
-            align-items: center;
-            font-size: 12px;
+        input[type='range'] {
+            height: 10px;
+            border-radius: 10px;
+            box-shadow: 0 1px 1px #def3f8, inset 0 0.125em 0.125em #0d1112;
         }
     </style>
 </head>
 <body>
 <div class="search">
-    <input type="text" id="search" placeholder="Search for a class..."> </br>
-    <select type="text" id="size-chooser">
-        <option value="incoming" selected="true">Incoming</option>
-        <option value="outgoing">Outgoing</option>
-    </select>
-    <input type="range" id="weight-filter" min="0" max="100" step="1">
-    <span id="weight-value" style="margin-left: 5px;">100</span> </br>
-    <input type="range" id="color-number" min="0" max="30" step="1">
-    <span id="color-number-value" style="margin-left: 5px;">100</span>
+    <div>
+        <label for="search">Search for class:</label>
+        <input type="text" id="search" placeholder="className">
+    </div>
+    <div>
+        <label for="size-chooser">Node size depends on :</label>
+        <select type="text" id="size-chooser">
+            <option value="incoming" selected="true">Incoming connections</option>
+            <option value="outgoing">Outgoing connections</option>
+        </select>
+    </div>
+    <div>
+        <label for="color-chooser">Node color depends on :</label>
+        <select type="text" id="color-chooser">
+            <option value="louvain" selected="true">Louvain calculated community</option>
+            <option value="artifactId">Project artefact identifier</option>
+        </select>
+    </div>
+    <div>
+        <label for="weight-filter">Filter nodes who weight more than :</label>
+        <input type="range" id="weight-filter" min="0" max="100" step="1">
+        <span id="weight-value">100</span>
+    </div>
+    <div>
+        <label for="color-number">Number of communities with color :</label>
+        <input type="range" id="color-number" min="0" max="30" step="1">
+        <span id="color-number-value" style="margin-left: 5px;">100</span>
+    </div>
 </div>
 <script src="https://d3js.org/d3.v7.min.js"></script>
 <script type="module">
@@ -121,7 +136,7 @@
         .attr("class", "legend");
 
     const simulation = d3.forceSimulation()
-        .force("link", d3.forceLink().id(d => d.id).distance(100))
+        .force("link", d3.forceLink().id(d => d.className).distance(100))
         .force("charge", d3.forceManyBody().strength(-50))
         .force("center", d3.forceCenter(width / 2, height / 2))
         // Add community clustering forces
@@ -135,6 +150,8 @@
 
     const defs = svg.append("defs");
 
+    const allGradients = [];
+
     let allLinks = svg.append("g")
         .attr("class", "links")
         .selectAll("line");
@@ -145,7 +162,9 @@
 
     let selectedNode = null;
 
-    let sizeExtractor = node => node.incoming;
+    let sizeExtractor = node => node.incomingConnections;
+
+    let communityMethod = 'louvain';
 
     let myZoom = d3.zoom().on('zoom', handleZoom);
     initZoom();
@@ -159,6 +178,7 @@
 
     const weightSlider = d3.select("#weight-filter");
     const sizeChooser = d3.select("#size-chooser");
+    const colorChooser = d3.select("#color-chooser");
     const weightValueSpan = d3.select("#weight-value");
 
     weightSlider
@@ -178,16 +198,23 @@
 
     d3.select("#search").on("input", function () {
         const searchTerm = this.value.toLowerCase();
-        allNodes.style("opacity", n => n.id.toLowerCase().includes(searchTerm) ? 1 : 0.1);
-        allLinks.style("opacity", l => l.source.id.toLowerCase().includes(searchTerm) || l.target.id.toLowerCase().includes(searchTerm) ? 1 : 0.1);
+        allNodes.style("opacity", n => n.className.toLowerCase().includes(searchTerm) ? 1 : 0.1);
+        allLinks.style("opacity", l => l.source.className.toLowerCase().includes(searchTerm) || l.target.className.toLowerCase().includes(searchTerm) ? 1 : 0.1);
     });
 
     sizeChooser.on("input", function () {
-        if (this.value === "incoming"){
-            sizeExtractor = node => node.incoming;
+        if (this.value === "incoming") {
+            sizeExtractor = node => node.incomingConnections;
         } else {
-            sizeExtractor = node => node.outgoing;
+            sizeExtractor = node => node.outgoingConnections;
         }
+        updateVisualization();
+    })
+
+    colorChooser.on("input", function () {
+        communityMethod = this.value;
+        calculateCommunities(currentNodes, currentLinks); // Recalculate communities
+        updateLegend(currentNodes); // Update legend with new community assignments
         updateVisualization();
     })
 
@@ -197,11 +224,15 @@
 
         const filteredNodes = originalGraphData.nodes
             .filter(n => sizeExtractor(n) <= maxWeight)
-            .map(({id, group, incoming, outgoing}) => ({id, group, incoming, outgoing}));
-        const filteredNodeIds = new Set(filteredNodes.map(n => n.id));
+        const filteredNodeIds = new Set(filteredNodes.map(n => n.className));
         const filteredLinks = originalGraphData.links
-            .filter(l => filteredNodeIds.has(l.source.id) && filteredNodeIds.has(l.target.id))
-            .map(({source, target, incoming, outgoing}) => ({source: source.id, target: target.id, incoming, outgoing}));
+            .filter(l => filteredNodeIds.has(l.source.className) && filteredNodeIds.has(l.target.className))
+            .map(({source, target, incomingConnections, outgoingConnections}) => ({
+                source: source.className,
+                target: target.className,
+                incomingConnections,
+                outgoingConnections
+            }));
 
         currentNodes = filteredNodes;
         currentLinks = filteredLinks;
@@ -235,12 +266,12 @@
         } else {
             selectedNode = d;
             const linkedNodes = new Set();
-            linkedNodes.add(d.id);
+            linkedNodes.add(d.className);
             currentLinks.forEach(l => {
-                if (l.source.id === d.id) linkedNodes.add(l.target.id);
-                if (l.target.id === d.id) linkedNodes.add(l.source.id);
+                if (l.source === d.className) linkedNodes.add(l.target);
+                if (l.target === d.className) linkedNodes.add(l.source);
             });
-            allLinks.classed('fade', l => l.source.id !== d.id && l.target.id !== d.id);
+            allLinks.classed('fade', l => l.source !== d.className && l.target !== d.className);
         }
     }
 
@@ -256,31 +287,42 @@
     }
 
     function calculateCommunities(nodes, links) {
-        const nodeData = nodes.map(d => d.id);
-        const linkData = links.map(l => ({source: l.source, target: l.target, weight: l.weight || 1}));
-        if (nodeData.length === 0) return;
+        let community
+        if(communityMethod === 'louvain') {
+            const nodeData = nodes.map(d => d.className);
+            const linkData = links.map(l => ({source: l.source, target: l.target, weight: l.weight || 1}));
+            if (nodeData.length === 0) return;
 
-        const community = jLouvain.jLouvain().nodes(nodeData).edges(linkData);
-        const communityResult = community();
+            const community = jLouvain.jLouvain().nodes(nodeData).edges(linkData);
+            const communityResult = community();
 
-        nodes.forEach(node => {
-            node.community = communityResult[node.id];
-        });
+            nodes.forEach(node => {
+                node.community = communityResult[node.className];
+            });
+        } else {
+            nodes.forEach(node => {
+                node.community = node.artifactId;
+            });
+        }
+
+
     }
 
     function updateLegend(nodes) {
-        let allCommunities = nodes.reduce((allCommunities, item) => {
-            allCommunities[item.community] = allCommunities[item.community] || {community: item.community, weight: 0};
-            allCommunities[item.community].weight++;
-            return allCommunities;
-        }, []);
-        allCommunities.sort((a, b) => b.weight - a.weight);
-        allCommunities.slice(0, 30);
-        allCommunities = allCommunities.map(item => item.community);
+        let allCommunities = nodes.reduce((acc, item) => {
+            acc[item.community] = acc[item.community] || {community: item.community, weight: 0};
+            acc[item.community].weight++;
+            return acc;
+        }, {});
 
-        color = allCommunities.map((item, index) => {
-            return {item, color: currentColors[index] || '#9E9E9E'}
-        });
+        allCommunities = Object.values(allCommunities);
+        allCommunities.sort((a, b) => b.weight - a.weight);
+        allCommunities = allCommunities.slice(0, 30);
+
+        color = allCommunities.reduce((map, item, index) => {
+            map[item.community] = {item, color: currentColors[index] || '#9E9E9E'};
+            return map;
+        }, {});
 
 
         legend.selectAll("*").remove(); // Clear existing legend
@@ -292,23 +334,23 @@
 
         legendItems.append("div")
             .attr("class", "legend-color")
-            .style("background-color", d => color[d].color);
+            .style("background-color", d => color[d.community].color);
 
         legendItems.append("input")
             .attr("type", "checkbox")
             .attr("checked", true)
             .on("change", (event, d) => {
                 const visible = event.target.checked;
-                d3.selectAll(".nodes circle").filter(n => n.community === d).style("display", visible ? "block" : "none");
+                d3.selectAll(".nodes circle").filter(n => n.community === d.community).style("display", visible ? "block" : "none");
             });
 
-        legendItems.append("span").text(d => `Community ${d}`);
+        legendItems.append("span").text(d => `Community ${d.community}`);
     }
 
     function updateVisualization() {
         // Update nodes
         allNodes = allNodes
-            .data(currentNodes, d => d.id)
+            .data(currentNodes, d => d.className)
             .join(
                 enter => enter.append("circle")
                     .attr("r", d => 5 + sizeExtractor(d) / 2)
@@ -318,7 +360,7 @@
                         .on("end", dragended))
                     .on("mouseover", function (event, d) {
                         tooltip.style("opacity", .9);
-                        tooltip.html(`ID: ${d.id}<br/>Incoming: ${d.incoming}<br/>Outgoing: ${d.outgoing}`)
+                        tooltip.html(`ID: ${d.className}<br/>Incoming connections: ${d.incomingConnections}<br/>Outgoing connections: ${d.outgoingConnections}`)
                             .style("left", (event.pageX + 10) + "px")
                             .style("top", (event.pageY - 28) + "px");
                     })
@@ -330,17 +372,17 @@
                 update => update,
                 exit => exit.remove()
             )
-            .attr("fill", d => color[d.community].color); // Apply color to both enter and update selections
+            .attr("fill", d => (color[d.community] ? color[d.community].color : '#9E9E9E')); // Apply color to both enter and update selections, with a fallback for communities not in the top 30
 
         // Update links
         allLinks = allLinks
-            .data(currentLinks, d => `${d.source.id}-${d.target.id}`)
+            .data(currentLinks, d => `${d.source}-${d.target}`)
             .join(
                 enter => enter.append("line")
                     .attr("stroke-width", d => 1 + Math.sqrt(d.weight))
                     .on("mouseover", function (event, d) {
                         tooltip.style("opacity", .9);
-                        tooltip.html(`Source: ${d.source.id}<br/>Target: ${d.target.id}<br/>Interactions: ${d.weight}`)
+                        tooltip.html(`Source: ${d.source}<br/>Target: ${d.target}<br/>Interactions: ${d.weight}`)
                             .style("left", (event.pageX + 10) + "px")
                             .style("top", (event.pageY - 28) + "px");
                     })
@@ -351,16 +393,19 @@
                 exit => exit.remove()
             )
             .attr("stroke", d => { // Apply stroke to both enter and update selections
-                const sourceNode = currentNodes.find(n => n.id === d.source.id);
-                const targetNode = currentNodes.find(n => n.id === d.target.id);
+                const sourceNode = currentNodes.find(n => n.className === d.source);
+                const targetNode = currentNodes.find(n => n.className === d.target);
                 if (!sourceNode || !targetNode) return "#ccc";
 
-                const id = `gradient-${sourceNode.id}-${targetNode.id}`.replace(/[^a-zA-Z0-9]/g, "-");
-                const gradient = defs.append("linearGradient")
-                    .attr("id", id)
-                    .attr("x1", "0%").attr("y1", "0%").attr("x2", "100%").attr("y2", "0%");
-                gradient.append("stop").attr("offset", "0%").attr("stop-color", color[sourceNode.community].color);
-                gradient.append("stop").attr("offset", "100%").attr("stop-color", color[targetNode.community].color);
+                const id = `gradient-${sourceNode.community}-${targetNode.community}`.replace(/[^a-zA-Z0-9]/g, "-");
+                if (!allGradients.some(item => item.attr('id') === id)) {
+                    const gradient = defs.append("linearGradient")
+                        .attr("id", id)
+                        .attr("x1", "0%").attr("y1", "0%").attr("x2", "100%").attr("y2", "0%");
+                    gradient.append("stop").attr("offset", "0%").attr("stop-color", color[sourceNode.community].color);
+                    gradient.append("stop").attr("offset", "100%").attr("stop-color", color[targetNode.community].color);
+                    allGradients.push(gradient);
+                }
                 return `url(#${id})`;
             });
 
