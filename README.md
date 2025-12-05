@@ -37,7 +37,7 @@ With default options
 
 ```console
 mvn -U org.openrewrite.maven:rewrite-maven-plugin:run \
--Drewrite.recipeArtifactCoordinates=io.github.jtama:project-graph-generator:1.0.0 \
+-Drewrite.recipeArtifactCoordinates=io.github.jtama:project-graph-generator:1.0.2 \
 -Drewrite.activeRecipes=io.github.jtama.openrewrite.ProjectAerialViewGenerator
 ```
 
@@ -45,9 +45,9 @@ With full options
 
 ```console
 mvn -U org.openrewrite.maven:rewrite-maven-plugin:run \
--Drewrite.recipeArtifactCoordinates=io.github.jtama:project-graph-generator:1.0.1-SNAPSHOT \
+-Drewrite.recipeArtifactCoordinates=io.github.jtama:project-graph-generator:1.0.2 \
 -Drewrite.activeRecipes=io.github.jtama.openrewrite.ProjectAerialViewGenerator \
--Drewrite.options=maxNodes=8,basePackages=com.foo;io.github.jtama,includeTests=true,generateHTMLView=false,includeTests=true \
+-Drewrite.options=maxNodes=8,basePackages=com.foo:io.github.jtama,includeTests=true,generateHTMLView=false,includeTests=true \
 -Drewrite.exportDatatables=true
 ```
 
