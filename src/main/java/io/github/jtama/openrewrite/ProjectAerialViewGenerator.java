@@ -20,6 +20,7 @@ import java.util.stream.Collectors;
 
 import org.jetbrains.annotations.NotNull;
 import org.openrewrite.Cursor;
+import org.openrewrite.DataTable;
 import org.openrewrite.ExecutionContext;
 import org.openrewrite.Option;
 import org.openrewrite.ScanningRecipe;
@@ -60,6 +61,9 @@ public class ProjectAerialViewGenerator extends ScanningRecipe<ProjectAerialView
     transient NodesReport nodesReport = new NodesReport(this);
 
     transient LinksReport linksReport = new LinksReport(this);
+
+    transient DataTable<JavaType> javaTypeNotHandled = new DataTable<>(this, "JavaType not handled",
+            "Records the JavaTypes that were not handled by the recipe.");
 
     public Boolean includeTests() {
         return includeTests != null && includeTests;
@@ -163,17 +167,7 @@ public class ProjectAerialViewGenerator extends ScanningRecipe<ProjectAerialView
             public J.@NotNull FieldAccess visitFieldAccess(J.@NotNull FieldAccess fieldAccess,
                     ExecutionContext ctx) {
                 var fa = super.visitFieldAccess(fieldAccess, ctx);
-                if (fa.getTarget().getType() == null) {
-                    return fa;
-                }
-
-                JavaType.FullyQualified targetType = switch (fa.getTarget().getType()) {
-                    case JavaType.FullyQualified fq -> fq;
-                    case JavaType.Array array -> (JavaType.FullyQualified) array.getElemType();
-                    default -> null;
-                };
-
-                addLink(targetType);
+                this.addLinkForType(fa.getTarget().getType(), ctx);
                 return fa;
             }
 
@@ -194,7 +188,22 @@ public class ProjectAerialViewGenerator extends ScanningRecipe<ProjectAerialView
                 return visitedNewClass;
             }
 
-            private void addLink(JavaType.FullyQualified targetType) {
+            private void addLinkForType(JavaType type, ExecutionContext ctx) {
+
+                switch (type) {
+                    case null -> {
+                    }
+                    case JavaType.Primitive primitive -> {
+                    }
+                    case JavaType.FullyQualified fq -> addLink(fq);
+                    case JavaType.Array array -> addLink((JavaType.FullyQualified) array.getElemType());
+                    case JavaType.GenericTypeVariable gtv -> gtv.getBounds().stream().forEach(b -> addLinkForType(b, ctx));
+                    default -> javaTypeNotHandled.insertRow(ctx, type);
+                }
+            }
+
+            private void addLink(@NotNull JavaType.FullyQualified targetType) {
+
                 if (packages().stream().noneMatch(basePackage -> targetType.getPackageName().contains(basePackage)))
                     return;
                 J.ClassDeclaration enclosingClass = getCursor().firstEnclosing(J.ClassDeclaration.class);
