@@ -29,6 +29,8 @@ mvn -U org.openrewrite.maven:rewrite-maven-plugin:run \
 -Drewrite.exportDatatables=true
 ```
 
+> You can also set the options using a `rewrite.yml` file [see below](#setting-the-options).
+
 ### With Gradle
 
 <details>
@@ -58,15 +60,18 @@ rewrite {
 
 2. Run the recipe with default values.
 
-```shell title="shell"
+```shell
 gradle rewriteRun
 ```
 
+> The `basePackages` option will default to the `rootProject.name` value which probably won't match any package in your project. You should set it explicitly as shown below.
+
 2. Run the recipe with full options
 
-```console
-gradle rewriteRun -Drewrite.options=maxNodes=8,basePackages=com.foo
-```
+The only way to pass options to the recipe with gradle plugin is to use a `rewrite.yml` file [see below](#setting-the-options).
+
+> If you don't want to change your gradle build file for your project, you can activate the recipe using an init-script [see official documentation](https://docs.openrewrite.org/running-recipes/running-rewrite-on-a-gradle-project-without-modifying-the-build#step-2-create-a-gradle-init-script)
+
 </details>
 
 ## Available options
@@ -81,18 +86,39 @@ None of the following are mandatory.
 This recipe is also able to output its result using [OpenRewrite's data tables](https://docs.openrewrite.org/authoring-recipes/data-tables#step-1-enable-data-table-functionality). If enabled it will produce on csv file
 with the graph nodes, and one with the links.
 
-## Smart default
+### Smart default
 
 Here are the following default values :
 
 * **`maxNodes`**: No limit, all classes found are included in the final scan result
-* **`basePackages`**: The project `groupId`
+* **`basePackages`**: The project `groupId` (for Maven projects) or `rootProject.name` (for Gradle projects)
 * **`includeTests`**: By default, test code is not scanned
 * **`generateHTMLView`**: `true`, setting this to false only makes sense if data table export is enabled.
 
+### Setting the options
+
+With Maven you can set the options using the `-Drewrite.options` as shown [up above](#with-maven). This option is not supported by the Gradle plugin.
+
+Another way to set the options is to create a `rewrite.yml` file at the root of your project with the following content :
+
+```yaml title="rewrite.yml"
+---
+type: specs.openrewrite.org/v1beta/recipe
+name: com.yourorg.openrewrite.ProjectAerialViewGenerator      # This is the name of your recipe to activate
+displayName: Generate Project Aerial View
+recipeList:                                                   # This is the list of recipes to run
+  - io.github.jtama.openrewrite.ProjectAerialViewGenerator:
+      basePackages: "com.yourorg"
+      maxNodes: 20
+      includeTests: true
+      generateHTMLView: false
+```
+
+> More information on YAML format reference on [the official documentation](https://docs.openrewrite.org/reference/yaml-format-reference)
+
 ## Data tables
 
-If enabled the scan will produce 2 data tables you will find under the `target/rewrite/datatables` folder: 
+If enabled the scan will produce data tables that you will find under the `target/rewrite/datatables` folder: 
 
 `io.github.jtama.openrewrite.model.NodesReport.csv` with the following columns :
 * Artifact ID : The artifact the class belongs to.
@@ -106,14 +132,17 @@ If enabled the scan will produce 2 data tables you will find under the `target/r
 * The target class name : The fully qualified name of the target class.
 * The link weight : The number of times these to classes relate to each other
 
+`io.github.jtama.openrewrite.model.JavaSourceFileExcludedReport.csv` (if some files were excluded due to package filtering) with the following columns :
+* Java source file path : The path of the excluded java source file.
+* Package name : The excluded source file's package, if any.
 
-
-
-
+`io.github.jtama.openrewrite.model.JavaTypesNotHandledReport` (if some types were not handled during the analysis) with the following columns :
+* Java type class name : The unhandled JavaType's class name.
+* Java type : The unhandled Java Type.
 
 ### Run with pre-release version
 
-To try pre-release version use the `1.0.3-SNAPSHOT`
+You can try pre-release version use the `999-SNAPSHOT`
 
 ## Contributors ✨
 

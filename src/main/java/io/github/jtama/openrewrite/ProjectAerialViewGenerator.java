@@ -31,6 +31,7 @@ import org.openrewrite.java.tree.J;
 import org.openrewrite.java.tree.JavaSourceFile;
 import org.openrewrite.java.tree.JavaType;
 
+import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
 import io.github.jtama.openrewrite.model.JavaSourceFileExcludedReport;
@@ -39,7 +40,7 @@ import io.github.jtama.openrewrite.model.Link;
 import io.github.jtama.openrewrite.model.LinksReport;
 import io.github.jtama.openrewrite.model.Node;
 import io.github.jtama.openrewrite.model.NodesReport;
- 
+
 /**
  * An OpenRewrite recipe that scans a Java project and generates it's internal dependency graph
  */
@@ -66,6 +67,17 @@ public class ProjectAerialViewGenerator extends ScanningRecipe<ProjectAerialView
     transient JavaTypesNotHandledReport javaTypesNotHandledReport = new JavaTypesNotHandledReport(this);
 
     transient JavaSourceFileExcludedReport javaSourceFileExcludedReport = new JavaSourceFileExcludedReport(this);
+
+    public ProjectAerialViewGenerator() {
+    }
+
+    @JsonCreator
+    public ProjectAerialViewGenerator(Integer maxNodes, String basePackages, Boolean includeTests, Boolean generateHTMLView) {
+        this.maxNodes = maxNodes;
+        this.basePackages = basePackages;
+        this.includeTests = includeTests;
+        this.generateHTMLView = generateHTMLView;
+    }
 
     public Boolean includeTests() {
         return includeTests != null && includeTests;
