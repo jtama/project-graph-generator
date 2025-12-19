@@ -297,7 +297,8 @@
             const communityResult = community();
 
             nodes.forEach(node => {
-                node.community = communityResult[node.className];
+                //if no community exists, then unilaterally assign community 0
+                node.community = communityResult ? communityResult[node.className] : 0;
             });
         } else {
             nodes.forEach(node => {
