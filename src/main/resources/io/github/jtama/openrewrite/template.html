@@ -2,154 +2,216 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Project Aerial View</title>
+    <script src="https://cdn.tailwindcss.com"></script>
     <style>
-        body {
-            font-family: sans-serif;
-            margin: 0;
-            overflow: hidden;
+        /* Custom scrollbar for webkit to keep the UI clean */
+        ::-webkit-scrollbar {
+            width: 6px;
         }
 
-        .links line {
-            stroke-opacity: 0.6;
+        ::-webkit-scrollbar-track {
+            background: transparent;
         }
 
-        .nodes circle {
-            stroke: #fff;
-            stroke-width: 1.5px;
-            cursor: pointer;
+        ::-webkit-scrollbar-thumb {
+            background-color: rgba(156, 163, 175, 0.5);
+            border-radius: 20px;
         }
 
-        .node.selected {
-            stroke: #000;
-            stroke-width: 2px;
-        }
-
+        /* D3 Specific Transitions */
         .node.fade, .links line.fade {
-            opacity: 0.2;
+            opacity: 0.1;
         }
 
-        .tooltip {
-            z-index: 10;
-            position: absolute;
-            text-align: left;
-            padding: 8px;
-            font: 12px sans-serif;
-            background: #eee;
-            border: 1px solid #999;
-            border-radius: 8px;
-            pointer-events: none;
-            opacity: 0;
-            transition: opacity 0.2s;
-        }
-
-        .legend {
-            z-index: 10;
-            position: absolute;
-            top: 20px;
-            right: 20px;
-            background: #fff;
-            border: 1px solid #999;
-            border-radius: 8px;
-            padding: 10px;
-            font: 12px sans-serif;
-        }
-
-        .legend-item {
-            display: flex;
-            align-items: center;
-            margin-bottom: 5px;
-        }
-
-        .legend-color {
-            width: 15px;
-            height: 15px;
-            margin-right: 5px;
-        }
-
-        .search {
-            display: grid;
-            grid-template-columns: repeat(3, 1fr);
-            grid-gap: 2em;
-            background-color: rgba(255, 255, 255, 0.8);
-            padding: 10px;
-            border-radius: 8px;
-        }
-
-        input[type='range'] {
-            height: 10px;
-            border-radius: 10px;
-            box-shadow: 0 1px 1px #def3f8, inset 0 0.125em 0.125em #0d1112;
+        /* Force hardware acceleration for smooth transitions */
+        aside {
+            will-change: transform;
         }
     </style>
 </head>
-<body>
-<div class="search">
-    <div>
-        <label for="search">Search for class:</label>
-        <input type="text" id="search" placeholder="className">
+<body class="bg-gray-50 overflow-hidden font-sans text-slate-800 h-screen w-screen relative">
+
+<!-- Toggle Buttons -->
+<button id="left-toggle-btn"
+        class="fixed top-4 left-4 z-40 p-2.5 bg-white/90 backdrop-blur-sm rounded-full shadow-lg hover:bg-white hover:scale-105 transition-all focus:outline-none focus:ring-2 focus:ring-indigo-500 text-slate-700"
+        title="Open Settings">
+    <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+              d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4"/>
+    </svg>
+</button>
+
+<button id="right-toggle-btn"
+        class="fixed top-4 right-4 z-40 p-2.5 bg-white/90 backdrop-blur-sm rounded-full shadow-lg hover:bg-white hover:scale-105 transition-all focus:outline-none focus:ring-2 focus:ring-indigo-500 text-slate-700"
+        title="Open Legend">
+    <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+              d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 002 2h2a2 2 0 002-2z"/>
+    </svg>
+</button>
+
+<!-- Left Sidebar: Filters (Default: Open) -->
+<aside id="left-sidebar"
+       class="fixed top-0 left-0 h-full w-80 bg-white/95 backdrop-blur-md shadow-2xl z-50 transform transition-transform duration-300 ease-in-out border-r border-slate-200 overflow-y-auto">
+    <div class="p-6 space-y-6">
+        <div class="flex items-center justify-between pb-4 border-b border-slate-200">
+            <h2 class="text-xl font-bold text-slate-800 tracking-tight">Settings</h2>
+            <button id="left-close-btn" class="p-1 rounded-md hover:bg-slate-100 text-slate-500 transition-colors">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24"
+                     stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                </svg>
+            </button>
+        </div>
+
+        <!-- Search -->
+        <div class="space-y-2">
+            <label for="search" class="block text-sm font-semibold text-slate-700">Search for class</label>
+            <div class="relative">
+                <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                    <svg class="h-4 w-4 text-gray-400" xmlns="http://www.w3.org/2000/svg" fill="none"
+                         viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                              d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
+                    </svg>
+                </div>
+                <input type="text" id="search" placeholder="Type to filter..."
+                       class="w-full pl-10 pr-3 py-2 border border-slate-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 text-sm transition-shadow">
+            </div>
+        </div>
+
+        <!-- Node Size -->
+        <div class="space-y-2">
+            <label for="size-chooser" class="block text-sm font-semibold text-slate-700">Node size metric</label>
+            <select id="size-chooser"
+                    class="w-full px-3 py-2 border border-slate-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 text-sm bg-white">
+                <option value="incoming" selected="selected">Incoming connections</option>
+                <option value="outgoing">Outgoing connections</option>
+            </select>
+        </div>
+
+        <!-- Node Color -->
+        <div class="space-y-2">
+            <label for="color-chooser" class="block text-sm font-semibold text-slate-700">Node color grouping</label>
+            <select id="color-chooser"
+                    class="w-full px-3 py-2 border border-slate-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 text-sm bg-white">
+                <option value="louvain" selected="selected">Louvain calculated community</option>
+                <option value="artifactId">Project artifact ID</option>
+            </select>
+        </div>
+
+        <!-- Weight Filter -->
+        <div class="space-y-3 pt-2">
+            <div class="flex justify-between items-center">
+                <label for="weight-filter" class="block text-sm font-semibold text-slate-700">Max Node Size</label>
+                <span id="weight-value"
+                      class="inline-flex items-center justify-center px-2 py-1 text-xs font-bold leading-none text-indigo-100 bg-indigo-600 rounded">100</span>
+            </div>
+            <input type="range" id="weight-filter" min="0" max="100" step="1"
+                   class="w-full h-2 bg-slate-200 rounded-lg appearance-none cursor-pointer accent-indigo-600 hover:accent-indigo-700">
+        </div>
+
+        <!-- Color Number -->
+        <div class="space-y-3 pt-2">
+            <div class="flex justify-between items-center">
+                <label for="color-number" class="block text-sm font-semibold text-slate-700">Top Communities</label>
+                <span id="color-number-value"
+                      class="inline-flex items-center justify-center px-2 py-1 text-xs font-bold leading-none text-indigo-100 bg-indigo-600 rounded">100</span>
+            </div>
+            <input type="range" id="color-number" min="0" max="30" step="1"
+                   class="w-full h-2 bg-slate-200 rounded-lg appearance-none cursor-pointer accent-indigo-600 hover:accent-indigo-700">
+        </div>
     </div>
-    <div>
-        <label for="size-chooser">Node size depends on :</label>
-        <select type="text" id="size-chooser">
-            <option value="incoming" selected="true">Incoming connections</option>
-            <option value="outgoing">Outgoing connections</option>
-        </select>
+</aside>
+
+<!-- Right Sidebar: Legend (Default: Hidden) -->
+<aside id="right-sidebar"
+       class="fixed top-0 right-0 h-full w-72 bg-white/95 backdrop-blur-md shadow-2xl z-50 transform transition-transform duration-300 ease-in-out translate-x-full border-l border-slate-200 overflow-y-auto">
+    <div class="p-6">
+        <div class="flex items-center justify-between pb-4 border-b border-slate-200 mb-4">
+            <h2 class="text-xl font-bold text-slate-800 tracking-tight">Legend</h2>
+            <button id="right-close-btn" class="p-1 rounded-md hover:bg-slate-100 text-slate-500 transition-colors">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24"
+                     stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                </svg>
+            </button>
+        </div>
+        <div id="legend-content" class="space-y-2">
+            <!-- Legend items injected here by D3 -->
+        </div>
     </div>
-    <div>
-        <label for="color-chooser">Node color depends on :</label>
-        <select type="text" id="color-chooser">
-            <option value="louvain" selected="true">Louvain calculated community</option>
-            <option value="artifactId">Project artefact identifier</option>
-        </select>
-    </div>
-    <div>
-        <label for="weight-filter">Filter nodes who weight more than :</label>
-        <input type="range" id="weight-filter" min="0" max="100" step="1">
-        <span id="weight-value">100</span>
-    </div>
-    <div>
-        <label for="color-number">Number of communities with color :</label>
-        <input type="range" id="color-number" min="0" max="30" step="1">
-        <span id="color-number-value" style="margin-left: 5px;">100</span>
-    </div>
-</div>
+</aside>
+
+<!-- Graph Container -->
+<div id="graph-container" class="absolute inset-0 w-full h-full"></div>
+
 <script src="https://d3js.org/d3.v7.min.js"></script>
 <script type="module">
     import jLouvain from 'https://cdn.jsdelivr.net/npm/jlouvain@2.0.0/+esm'
 
+    // --- UI Interactions ---
+    const leftSidebar = document.getElementById('left-sidebar');
+    const rightSidebar = document.getElementById('right-sidebar');
+
+    // Mobile/Init check: On very small screens, maybe start closed? Keeping strict "Left Open" for now per plan.
+
+    document.getElementById('left-toggle-btn').addEventListener('click', () => {
+        leftSidebar.classList.remove('-translate-x-full');
+    });
+
+    document.getElementById('left-close-btn').addEventListener('click', () => {
+        leftSidebar.classList.add('-translate-x-full');
+    });
+
+    document.getElementById('right-toggle-btn').addEventListener('click', () => {
+        rightSidebar.classList.remove('translate-x-full');
+    });
+
+    document.getElementById('right-close-btn').addEventListener('click', () => {
+        rightSidebar.classList.add('translate-x-full');
+    });
+
+    // @formatter:off
+    // This is for templating replacement...
     const originalGraphData = JSON.parse(''{{graphData}}'');
+    // @formatter:on
     let currentNodes = originalGraphData.nodes;
-    let currentLinks = originalGraphData.links;
+    let currentLinks = originalGraphData.links.map(l => ({
+        ...l,
+        source: currentNodes.find(n => n.className === l.source),
+        target: currentNodes.find(n => n.className === l.target),
+    }));
+
     let color;
     let communityCenters = {};
 
     const width = window.innerWidth;
     const height = window.innerHeight;
 
-    // --- Tooltip ---
+    // Tooltip (Styled with Tailwind classes via d3 attrs)
     const tooltip = d3.select("body").append("div")
-        .attr("class", "tooltip");
+        .attr("class", "absolute z-50 p-3 text-sm font-medium text-white bg-slate-800 rounded-lg shadow-xl pointer-events-none opacity-0 transition-opacity duration-200 border border-slate-700 max-w-xs break-words");
 
-    // --- Legend Container ---
-    const legend = d3.select("body").append("div")
-        .attr("class", "legend");
+    // Legend Container (Select existing)
+    const legendContainer = d3.select("#legend-content");
 
     const simulation = d3.forceSimulation()
         .force("link", d3.forceLink().id(d => d.className).distance(100))
         .force("charge", d3.forceManyBody().strength(-50))
         .force("center", d3.forceCenter(width / 2, height / 2))
-        // Add community clustering forces
         .force("x", d3.forceX(d => communityCenters[d.community]?.x || width / 2).strength(0.05))
         .force("y", d3.forceY(d => communityCenters[d.community]?.y || height / 2).strength(0.05));
 
-    const svg = d3.select("body").append("svg")
+    // SVG appended to specific container
+    const svg = d3.select("#graph-container").append("svg")
         .attr("width", width)
-        .attr("height", height);
-
+        .attr("height", height)
+        .attr("class", "w-full h-full"); // Responsive SVG
 
     const defs = svg.append("defs");
-
     const allGradients = [];
 
     let allLinks = svg.append("g")
@@ -161,24 +223,27 @@
         .selectAll("circle");
 
     let selectedNode = null;
-
     let sizeExtractor = node => node.incomingConnections;
-
     let communityMethod = 'louvain';
-
     let myZoom = d3.zoom().on('zoom', handleZoom);
+
     initZoom();
 
     // --- Dynamic Range Slider Setup ---
     const allSizes = originalGraphData.nodes.map(d => d.size);
     const minSize = d3.min(allSizes) || 0;
     const maxSize = d3.max(allSizes) || 100;
-    const allColors = ['#e6194b', '#3cb44b', '#ffe119', '#4363d8', '#f58231', '#911eb4', '#46f0f0', '#f032e6', '#bcf60c', '#fabebe', '#008080', '#e6beff', '#9a6324', '#fffac8', '#800000', '#aaffc3', '#808000', '#ffd8b1', '#000075', '#808080', '#ffffff', '#000000'];
+    const allColors = [
+        '#e6194b', '#3cb44b', '#ffe119', '#4363d8', '#f58231', '#911eb4',
+        '#46f0f0', '#f032e6', '#bcf60c', '#fabebe', '#008080', '#e6beff',
+        '#9a6324', '#fffac8', '#800000', '#aaffc3', '#808000', '#ffd8b1',
+        '#000075', '#808080', '#ffffff', '#000000'
+    ];
     let currentColors = allColors.slice();
 
     const weightSlider = d3.select("#weight-filter");
     const sizeChooser = d3.select("#size-chooser");
-    const colorChooser = d3.select("#color-chooser");
+    const community = d3.select("#color-chooser");
     const weightValueSpan = d3.select("#weight-value");
 
     weightSlider
@@ -208,55 +273,41 @@
         } else {
             sizeExtractor = node => node.outgoingConnections;
         }
-        updateVisualization();
+        redraw();
     })
 
-    colorChooser.on("input", function () {
+    community.on("input", function () {
         communityMethod = this.value;
-        calculateCommunities(currentNodes, currentLinks); // Recalculate communities
-        updateLegend(currentNodes); // Update legend with new community assignments
-        updateVisualization();
+        redraw();
     })
 
     weightSlider.on("input", function () {
         const maxWeight = +this.value;
-        weightValueSpan.text(maxWeight); // Update the displayed value
+        weightValueSpan.text(maxWeight);
 
-        const filteredNodes = originalGraphData.nodes
-            .filter(n => sizeExtractor(n) <= maxWeight)
+        const filteredNodes = originalGraphData.nodes.filter(n => sizeExtractor(n) <= maxWeight)
         const filteredNodeIds = new Set(filteredNodes.map(n => n.className));
         const filteredLinks = originalGraphData.links
-            .filter(l => filteredNodeIds.has(l.source.className) && filteredNodeIds.has(l.target.className))
-            .map(({source, target, incomingConnections, outgoingConnections}) => ({
-                source: source.className,
-                target: target.className,
-                incomingConnections,
-                outgoingConnections
+            .filter(l => filteredNodeIds.has(l.source) && filteredNodeIds.has(l.target))
+            .map(l => ({
+                ...l,
+                source: filteredNodes.find(n => n.className === l.source),
+                target: filteredNodes.find(n => n.className === l.target),
             }));
+
 
         currentNodes = filteredNodes;
         currentLinks = filteredLinks;
 
-        // Recalculate communities and update legend on the filtered data
-        calculateCommunities(currentNodes, currentLinks);
-        updateLegend(currentNodes);
-        updateVisualization();
+        redraw();
     });
 
     colorSlider.on("input", function () {
         const colorNumber = +this.value;
-        colorValueSpan.text(colorNumber); // Update the displayed value
-
+        colorValueSpan.text(colorNumber);
         currentColors = allColors.slice(0, colorNumber)
-
-        updateLegend(currentNodes);
-        updateVisualization();
+        redraw();
     });
-
-    // Initial setup
-    calculateCommunities(currentNodes, currentLinks);
-    updateLegend(currentNodes);
-    updateVisualization();
 
 
     function clickHandler(event, d) {
@@ -279,33 +330,47 @@
         if (d.fx === null) {
             d.fx = d.x;
             d.fy = d.y;
-
         } else {
             d.fx = null;
             d.fy = null;
         }
     }
 
+    redraw();
+
+    function redraw() {
+        // Initial setup
+        calculateCommunities(currentNodes, currentLinks);
+        updateLegend(currentNodes);
+        updateVisualization();
+    }
+
     function calculateCommunities(nodes, links) {
-        let community
-        if(communityMethod === 'louvain') {
+        if (communityMethod === 'louvain') {
             const nodeData = nodes.map(d => d.className);
-            const linkData = links.map(l => ({source: l.source, target: l.target, weight: l.weight || 1}));
+            const linkData = links.map(l => ({
+                source: l.source.className,
+                target: l.target.className,
+                weight: l.weight || 1
+            }));
             if (nodeData.length === 0) return;
 
             const community = jLouvain.jLouvain().nodes(nodeData).edges(linkData);
             const communityResult = community();
 
             nodes.forEach(node => {
-                node.community = communityResult[node.className];
+                //if no community exists, then unilaterally assign community 0
+                node.community = communityResult ? communityResult[node.className] : 0;
             });
         } else {
             nodes.forEach(node => {
                 node.community = node.artifactId;
             });
         }
+    }
 
-
+    function getColor(d) {
+        return color[d.community] ? color[d.community].color : '#9E9E9E';
     }
 
     function updateLegend(nodes) {
@@ -324,47 +389,64 @@
             return map;
         }, {});
 
+        legendContainer.selectAll("*").remove();
 
-        legend.selectAll("*").remove(); // Clear existing legend
-
-        const legendItems = legend.selectAll(".legend-item")
+        // Tailwind styled legend items
+        const legendItems = legendContainer.selectAll(".legend-item")
             .data(allCommunities)
             .enter().append("div")
-            .attr("class", "legend-item");
+            .attr("class", "flex items-center space-x-3 p-1 hover:bg-slate-50 rounded transition-colors");
 
         legendItems.append("div")
-            .attr("class", "legend-color")
+            .attr("class", "w-4 h-4 rounded shadow-sm flex-shrink-0")
             .style("background-color", d => color[d.community].color);
 
         legendItems.append("input")
             .attr("type", "checkbox")
+            .attr("class", "form-checkbox h-4 w-4 text-indigo-600 rounded border-slate-300 focus:ring-indigo-500 cursor-pointer")
             .attr("checked", true)
             .on("change", (event, d) => {
                 const visible = event.target.checked;
                 d3.selectAll(".nodes circle").filter(n => n.community === d.community).style("display", visible ? "block" : "none");
             });
 
-        legendItems.append("span").text(d => `Community ${d.community}`);
+        legendItems.append("span")
+            .attr("class", "text-sm text-slate-700 truncate")
+            .attr("title", d => `Community ${d.community}`)
+            .text(d => `Community ${d.community}`);
     }
 
     function updateVisualization() {
+        allGradients.length = 0;
+        defs.selectChildren().remove();
         // Update nodes
         allNodes = allNodes
             .data(currentNodes, d => d.className)
             .join(
                 enter => enter.append("circle")
                     .attr("r", d => 5 + sizeExtractor(d) / 2)
+                    .attr("stroke", "#fff")
+                    .attr("stroke-width", 1.5)
+                    .attr("cursor", "pointer")
                     .call(d3.drag()
                         .on("start", dragstarted)
                         .on("drag", dragged)
                         .on("end", dragended))
                     .on("mouseover", function (event, d) {
-                        tooltip.style("opacity", .9);
-                        tooltip.html(`ID: ${d.className}<br/>Incoming connections: ${d.incomingConnections}<br/>Outgoing connections: ${d.outgoingConnections}`)
-                            .style("left", (event.pageX + 10) + "px")
+                        d3.select(this).attr("stroke", "#000").attr("stroke-width", 2);
+                        tooltip.style("opacity", 1);
+                        tooltip.html(`<div class="font-bold border-b border-slate-600 pb-1 mb-1">${d.className}</div>
+                                          <div><span class="text-slate-300">Community:</span> ${d.community} <span class="text-slate-300">In:</span> ${d.incomingConnections} <span class="mx-1">|</span> <span class="text-slate-300">Out:</span> ${d.outgoingConnections}</div>`)
+                            .style("left", (event.pageX + 15) + "px")
+                            .style("top", (event.pageY - 28) + "px");
+                    })
+                    .on("mousemove", function (event) { // Keep tooltip moving with mouse
+                        tooltip
+                            .style("left", (event.pageX + 15) + "px")
                             .style("top", (event.pageY - 28) + "px");
                     })
                     .on("mouseout", function (d) {
+                        d3.select(this).attr("stroke", "#fff").attr("stroke-width", 1.5);
                         tooltip.style("opacity", 0);
                     })
                     .on('click', clickHandler)
@@ -372,7 +454,7 @@
                 update => update,
                 exit => exit.remove()
             )
-            .attr("fill", d => (color[d.community] ? color[d.community].color : '#9E9E9E')); // Apply color to both enter and update selections, with a fallback for communities not in the top 30
+            .attr("fill", d => getColor(d));
 
         // Update links
         allLinks = allLinks
@@ -380,10 +462,19 @@
             .join(
                 enter => enter.append("line")
                     .attr("stroke-width", d => 1 + Math.sqrt(d.weight))
+                    .attr("stroke-opacity", 0.6)
                     .on("mouseover", function (event, d) {
-                        tooltip.style("opacity", .9);
-                        tooltip.html(`Source: ${d.source}<br/>Target: ${d.target}<br/>Interactions: ${d.weight}`)
-                            .style("left", (event.pageX + 10) + "px")
+                        tooltip.style("opacity", 1);
+                        tooltip.html(`<div class="font-bold text-indigo-300">Link</div>
+                                           <div><span class="text-slate-300">Source:</span> ${d.source.className}</div>
+                                           <div><span class="text-slate-300">Target:</span> ${d.target.className}</div>
+                                           <div class="mt-1 pt-1 border-t border-slate-600"><span class="text-slate-300">Weight:</span> ${d.weight}</div>`)
+                            .style("left", (event.pageX + 15) + "px")
+                            .style("top", (event.pageY - 28) + "px");
+                    })
+                    .on("mousemove", function (event) {
+                        tooltip
+                            .style("left", (event.pageX + 15) + "px")
                             .style("top", (event.pageY - 28) + "px");
                     })
                     .on("mouseout", function (d) {
@@ -392,9 +483,9 @@
                 update => update,
                 exit => exit.remove()
             )
-            .attr("stroke", d => { // Apply stroke to both enter and update selections
-                const sourceNode = currentNodes.find(n => n.className === d.source);
-                const targetNode = currentNodes.find(n => n.className === d.target);
+            .attr("stroke", d => {
+                const sourceNode = currentNodes.find(n => n.className === d.source.className);
+                const targetNode = currentNodes.find(n => n.className === d.target.className);
                 if (!sourceNode || !targetNode) return "#ccc";
 
                 const id = `gradient-${sourceNode.community}-${targetNode.community}`.replace(/[^a-zA-Z0-9]/g, "-");
@@ -402,24 +493,20 @@
                     const gradient = defs.append("linearGradient")
                         .attr("id", id)
                         .attr("x1", "0%").attr("y1", "0%").attr("x2", "100%").attr("y2", "0%");
-                    gradient.append("stop").attr("offset", "0%").attr("stop-color", color[sourceNode.community].color);
-                    gradient.append("stop").attr("offset", "100%").attr("stop-color", color[targetNode.community].color);
+                    gradient.append("stop").attr("offset", "0%").attr("stop-color", getColor(sourceNode));
+                    gradient.append("stop").attr("offset", "100%").attr("stop-color", getColor(targetNode));
                     allGradients.push(gradient);
                 }
                 return `url(#${id})`;
             });
 
-        // Update simulation
         simulation.nodes(currentNodes)
         simulation.force("link").links(currentLinks)
         simulation.alpha(1).restart();
         simulation.on("tick", ticked);
     }
 
-
     function ticked() {
-
-
         allNodes
             .attr("r", d => 5 + sizeExtractor(d) / 2)
             .attr("cx", d => {
