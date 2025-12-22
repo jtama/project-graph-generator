@@ -58,6 +58,17 @@ release:
           - GitHub
           - GitHub Action
           - '[bot]'
+      labelers:
+        - label: 'feat'
+          title: 'feature'
+        - label: 'feat'
+          title: 'feature'
+      categories:
+        - title: '⚙️  Dependencies'
+          key: 'dependencies'
+          order: 80
+          labels:
+            - 'dependencies'
 
 signing:
   active: ALWAYS

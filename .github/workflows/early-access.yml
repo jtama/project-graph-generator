@@ -66,6 +66,7 @@ jobs:
           JRELEASER_PROJECT_VERSION: ${{ needs.precheck.outputs.PROJECT_VERSION }}
           JRELEASER_OVERWRITE: true
           JRELEASER_DRAFT: true
+          JRELEASER_SKIP_TAG: true
 
         # Persist logs
       - name: JReleaser release output
