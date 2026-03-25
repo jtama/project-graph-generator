@@ -7,9 +7,9 @@ import org.openrewrite.Column;
  */
 public class Link {
 
-    @Column(displayName = "The source class name", description = "The fully qualified name of the source class.")
+    @Column(displayName = "Source", description = "The fully qualified name of the source class.")
     private final String source;
-    @Column(displayName = "The target class name", description = "The fully qualified name of the target class.")
+    @Column(displayName = "Target", description = "The fully qualified name of the target class.")
     private final String target;
     @Column(displayName = "The link weight", description = "The number of times these to classes relate to each other")
     private int weight;
