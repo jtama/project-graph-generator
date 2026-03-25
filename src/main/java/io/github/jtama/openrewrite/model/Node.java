@@ -9,7 +9,7 @@ public class Node {
 
     @Column(displayName = "Group Identifier", description = "The project's group identifier the class belongs to.")
     private String artifactId;
-    @Column(displayName = "Class name", description = "The simple name of the class.")
+    @Column(displayName = "id", description = "The simple name of the class.")
     private final String className;
     @Column(displayName = "Package name", description = "The class package name.")
     private final String packageName;
