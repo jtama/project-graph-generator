@@ -145,8 +145,51 @@
     </div>
 </aside>
 
-<!-- Graph Container -->
-<div id="graph-container" class="absolute inset-0 w-full h-full"></div>
+<!-- Tabs Navigation -->
+<div class="fixed top-4 left-1/2 transform -translate-x-1/2 z-40 bg-white/90 backdrop-blur-sm rounded-full shadow-lg p-1 flex space-x-1 border border-slate-200">
+    <button id="tab-btn-graph" class="px-4 py-2 rounded-full text-sm font-semibold bg-indigo-600 text-white shadow transition-colors focus:outline-none">Graph View</button>
+    <button id="tab-btn-table" class="px-4 py-2 rounded-full text-sm font-semibold text-slate-700 hover:bg-slate-100 transition-colors focus:outline-none">Data Table</button>
+</div>
+
+<!-- Tab Contents -->
+<div id="tab-content-graph" class="absolute inset-0 w-full h-full">
+    <!-- Graph Container -->
+    <div id="graph-container" class="absolute inset-0 w-full h-full"></div>
+</div>
+
+<div id="tab-content-table" class="absolute inset-0 w-full h-full hidden bg-slate-50 pt-20 px-8 overflow-y-auto z-30">
+    <div class="max-w-7xl mx-auto pb-12">
+        <h2 class="text-2xl font-bold text-slate-800 mb-6">Method invocation count</h2>
+        <div class="overflow-hidden bg-white shadow-sm ring-1 ring-slate-200 sm:rounded-lg">
+            <div class="mx-auto flow-root max-w-7xl">
+                <div class="-mx-4 -my-2 overflow-x-auto sm:-mx-6 lg:-mx-8">
+                    <div class="inline-block min-w-full py-2 align-middle sm:px-6 lg:px-8">
+                        <table class="min-w-full text-sm bg-background divide-y divide-zinc-200" role="table">
+                            <thead class="bg-zinc-100" role="rowgroup">
+                            <tr role="row">
+                                <th scope="col" class="px-3 py-3.5 font-medium text-left text-zinc-900 cursor-pointer hover:bg-zinc-200 transition-colors" id="th-name" aria-sort="ascending">
+                                        <div class="inline-flex items-center gap-1 text-zinc-900">
+                                            Method name
+                                            <span id="sort-icon-name" class="w-4 h-4 inline-block"></span>
+                                        </div>
+                                    </th>
+                                    <th scope="col" class="px-3 py-3.5 font-medium text-left text-zinc-900 cursor-pointer hover:bg-zinc-200 transition-colors" id="th-count" aria-sort="none">
+                                        <div class="inline-flex items-center gap-1 text-zinc-900">
+                                            Invocation count
+                                            <span id="sort-icon-count" class="w-4 h-4 inline-block"></span>
+                                        </div>
+                                    </th>
+                                </tr>
+                                </thead>
+                                <tbody class="divide-y divide-zinc-200 bg-white" role="rowgroup" id="invocation-table-body">
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+            </div>
+        </div>
+    </div>
+</div>
 
 <script src="https://d3js.org/d3.v7.min.js"></script>
 <script type="module">
@@ -174,9 +217,112 @@
         rightSidebar.classList.add('translate-x-full');
     });
 
+    // --- Tab Switching Logic ---
+    const tabBtnGraph = document.getElementById('tab-btn-graph');
+    const tabBtnTable = document.getElementById('tab-btn-table');
+    const tabContentGraph = document.getElementById('tab-content-graph');
+    const tabContentTable = document.getElementById('tab-content-table');
+
+    // @formatter:off
+    let invocationData = JSON.parse('{{ invocationCount }}');
+
+    // @formatter:on
+
+    let sortKey = 'count';
+    let sortDir = 'desc';
+    let maxCount;
+
+    const invocationTableBody = document.getElementById('invocation-table-body');
+    const sortIconName = document.getElementById('sort-icon-name');
+    const sortIconCount = document.getElementById('sort-icon-count');
+    const thName = document.getElementById('th-name');
+    const thCount = document.getElementById('th-count');
+
+    const iconUp = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="icon icon-tabler-chevron-up size-4"><path stroke="none" d="M0 0h24v24H0z" fill="none"></path><path d="M6 15l6 -6l6 6"></path></svg>`;
+    const iconDown = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="icon icon-tabler-chevron-down size-4"><path stroke="none" d="M0 0h24v24H0z" fill="none"></path><path d="M6 9l6 6l6 -6"></path></svg>`;
+
+    function renderInvocationTable(searchTerm = '') {
+        if (!invocationTableBody) return;
+        
+        let filteredData = invocationData;
+        if (searchTerm) {
+            filteredData = invocationData.filter(row => String(row.name).toLowerCase().includes(searchTerm));
+        }
+
+        const sortedData = [...filteredData].sort((a, b) => {
+            let valA = a[sortKey];
+            let valB = b[sortKey];
+            
+            let cmp = 0;
+            if (typeof valA === 'number' && typeof valB === 'number') {
+                cmp = valA - valB;
+            } else {
+                cmp = String(valA).localeCompare(String(valB));
+            }
+            
+            return sortDir === 'asc' ? cmp : -cmp;
+        });
+
+        if (!maxCount) {
+            maxCount = sortedData[0].count;
+        }
+
+
+        invocationTableBody.innerHTML = '';
+        sortedData.forEach(row => {
+            const tr = document.createElement('tr');
+            tr.className = 'even:bg-zinc-50 border-b border-zinc-200 last:border-0';
+            tr.innerHTML = `
+                <td class="whitespace-nowrap px-3 py-4 text-sm text-zinc-900" style="color: hsl(from hsl(240, 5%, 26%) h s calc( (${row.count} / ${maxCount}) * 100));background-color: rgb(from darkred r g b / calc( ${row.count} / ${maxCount}))">${row.methodName}</td>
+                <td class="whitespace-nowrap px-3 py-4 text-sm text-zinc-900" style="color: hsl(from hsl(240, 5%, 26%) h s calc( (${row.count} / ${maxCount}) * 100));background-color: rgb(from darkred r g b / calc( ${row.count} / ${maxCount}))">${row.count}</td>
+            `;
+            invocationTableBody.appendChild(tr);
+        });
+
+        if (sortIconName) sortIconName.innerHTML = sortKey === 'methodName' ? (sortDir === 'asc' ? iconUp : iconDown) : '';
+        if (sortIconCount) sortIconCount.innerHTML = sortKey === 'count' ? (sortDir === 'asc' ? iconUp : iconDown) : '';
+        
+        if (thName) thName.setAttribute('aria-sort', sortKey === 'methodName' ? (sortDir === 'asc' ? 'ascending' : 'descending') : 'none');
+        if (thCount) thCount.setAttribute('aria-sort', sortKey === 'count' ? (sortDir === 'asc' ? 'ascending' : 'descending') : 'none');
+    }
+
+    if (thName) thName.addEventListener('click', () => setSort('methodName'));
+    if (thCount) thCount.addEventListener('click', () => setSort('count'));
+
+    function setSort(key) {
+        if (sortKey === key) {
+            sortDir = sortDir === 'asc' ? 'desc' : 'asc';
+        } else {
+            sortKey = key;
+            sortDir = 'asc';
+        }
+        const searchInput = document.getElementById('search');
+        renderInvocationTable(searchInput ? searchInput.value.toLowerCase() : '');
+    }
+
+    // Initial render
+    renderInvocationTable();
+
+    function switchTab(tab) {
+        if (tab === 'graph') {
+            tabBtnGraph.className = 'px-4 py-2 rounded-full text-sm font-semibold bg-indigo-600 text-white shadow transition-colors focus:outline-none';
+            tabBtnTable.className = 'px-4 py-2 rounded-full text-sm font-semibold text-slate-700 hover:bg-slate-100 transition-colors focus:outline-none';
+            tabContentGraph.classList.remove('hidden');
+            tabContentTable.classList.add('hidden');
+        } else {
+            tabBtnTable.className = 'px-4 py-2 rounded-full text-sm font-semibold bg-indigo-600 text-white shadow transition-colors focus:outline-none';
+            tabBtnGraph.className = 'px-4 py-2 rounded-full text-sm font-semibold text-slate-700 hover:bg-slate-100 transition-colors focus:outline-none';
+            tabContentTable.classList.remove('hidden');
+            tabContentGraph.classList.add('hidden');
+        }
+    }
+
+    tabBtnGraph.addEventListener('click', () => switchTab('graph'));
+    tabBtnTable.addEventListener('click', () => switchTab('table'));
+
     // @formatter:off
     // This is for templating replacement...
-    const originalGraphData = JSON.parse(''{{graphData}}'');
+    const originalGraphData = JSON.parse('{{ graphData }}');
     // @formatter:on
     let currentNodes = originalGraphData.nodes;
     let currentLinks = originalGraphData.links.map(l => ({
@@ -265,6 +411,11 @@
         const searchTerm = this.value.toLowerCase();
         allNodes.style("opacity", n => n.className.toLowerCase().includes(searchTerm) ? 1 : 0.1);
         allLinks.style("opacity", l => l.source.className.toLowerCase().includes(searchTerm) || l.target.className.toLowerCase().includes(searchTerm) ? 1 : 0.1);
+        
+        // Filter table rows if table is visible
+        if (!tabContentTable.classList.contains('hidden')) {
+            renderInvocationTable(searchTerm);
+        }
     });
 
     sizeChooser.on("input", function () {
@@ -417,6 +568,10 @@
     }
 
     function updateVisualization() {
+        if (!tabContentTable.classList.contains('hidden')) {
+            const searchTerm = document.getElementById('search').value.toLowerCase();
+            renderInvocationTable(searchTerm);
+        }
         allGradients.length = 0;
         defs.selectChildren().remove();
         // Update nodes

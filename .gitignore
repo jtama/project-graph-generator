@@ -3,3 +3,4 @@
 target
 out
 .env
+.DS_Store

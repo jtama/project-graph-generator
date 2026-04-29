@@ -15,7 +15,7 @@ class ProjectAerialViewGeneratorTest implements RewriteTest {
 
     @Override
     public void defaults(RecipeSpec spec) {
-        spec.recipe(new ProjectAerialViewGenerator())
+        spec.recipe(new CountPublicMethodInvocations("com.yourorg", false, true))
                 .parser(JavaParser.fromJavaVersion()
                         .logCompilationWarningsAndErrors(true));
     }
@@ -24,35 +24,32 @@ class ProjectAerialViewGeneratorTest implements RewriteTest {
     @Disabled
     void addsHelloToFooBar() {
         rewriteRun(
+                spec -> spec.expectedCyclesThatMakeChanges(0)
+                        .recipes(new CountPublicMethodInvocations("com.yourorg", false, true),
+                                new ProjectAerialViewGenerator()),
                 java(
                         """
                                 package com.yourorg;
 
                                 class FooBar {
+                                     @Override
+                                     public String toString() {
+                                         return super.toString();
+                                     }
                                 }
                                 """,
-                        null,
-                        spec -> spec.markers(
-                                new JavaProject(
-                                        UUID.randomUUID(),
-                                        "NoUseForAName",
-                                        new JavaProject.Publication("com.yourorg", "my-app", "1")))),
+                        spec -> spec.markers(new JavaProject(UUID.randomUUID(), "NoUseForAName",
+                                new JavaProject.Publication("com.yourorg", "my-app", "1")))),
                 java(
                         """
                                 package com.yourorg;
 
                                 class BarBar {
                                     private FooBar foo = new FooBar();
+                                    private String tutu = foo.toString();
                                 }
                                 """,
-                        null,
-                        spec -> spec.markers(
-                                new JavaProject(
-                                        UUID.randomUUID(),
-                                        "NoUseForAName",
-                                        new JavaProject.Publication("com.yourorg", "my-app", "1"))))
-
-        );
+                        spec -> spec.markers(new JavaProject(UUID.randomUUID(), "NoUseForAName",
+                                new JavaProject.Publication("com.yourorg", "my-app", "1")))));
     }
-
 }
