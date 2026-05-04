@@ -1,4 +1,4 @@
-package io.github.jtama.openrewrite.model;
+package io.github.jtama.openrewrite.report;
 
 import org.jetbrains.annotations.NotNull;
 import org.jspecify.annotations.Nullable;

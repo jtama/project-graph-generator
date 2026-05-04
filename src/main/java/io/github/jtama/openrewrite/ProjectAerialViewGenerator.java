@@ -3,12 +3,6 @@ package io.github.jtama.openrewrite;
 import static java.util.Collections.emptyList;
 import static java.util.function.Predicate.not;
 
-import java.io.IOException;
-import java.io.InputStream;
-import java.nio.charset.StandardCharsets;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
@@ -17,6 +11,7 @@ import java.util.List;
 import java.util.Optional;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import org.jetbrains.annotations.NotNull;
 import org.openrewrite.Cursor;
@@ -32,14 +27,13 @@ import org.openrewrite.java.tree.JavaSourceFile;
 import org.openrewrite.java.tree.JavaType;
 
 import com.fasterxml.jackson.annotation.JsonCreator;
-import com.fasterxml.jackson.databind.ObjectMapper;
 
-import io.github.jtama.openrewrite.model.JavaSourceFileExcludedReport;
-import io.github.jtama.openrewrite.model.JavaTypesNotHandledReport;
 import io.github.jtama.openrewrite.model.Link;
-import io.github.jtama.openrewrite.model.LinksReport;
 import io.github.jtama.openrewrite.model.Node;
-import io.github.jtama.openrewrite.model.NodesReport;
+import io.github.jtama.openrewrite.report.JavaSourceFileExcludedReport;
+import io.github.jtama.openrewrite.report.JavaTypesNotHandledReport;
+import io.github.jtama.openrewrite.report.LinksReport;
+import io.github.jtama.openrewrite.report.NodesReport;
 
 /**
  * An OpenRewrite recipe that scans a Java project and generates it's internal dependency graph
@@ -121,7 +115,7 @@ public class ProjectAerialViewGenerator extends ScanningRecipe<ProjectAerialView
             @Override
             public J preVisit(@NotNull J tree, ExecutionContext ctx) {
                 if (tree instanceof JavaSourceFile javaSourceFile) {
-                    javaSourceFile.getMarkers().findAll(JavaProject.class).forEach(javaProject -> {
+                    javaSourceFile.getMarkers().findFirst(JavaProject.class).ifPresent(javaProject -> {
                         if (javaProject.getPublication() != null
                                 && StringUtils.isNotEmpty(javaProject.getPublication().getGroupId())) {
                             if (packages().isEmpty())
@@ -271,19 +265,7 @@ public class ProjectAerialViewGenerator extends ScanningRecipe<ProjectAerialView
         finalGraph.nodes.forEach(node -> nodesReport.insertRow(ctx, node));
         finalGraph.links.forEach(link -> linksReport.insertRow(ctx, link));
         if (generateHTMLView()) {
-            try (InputStream templateStream = getClass().getResourceAsStream("template.html")) {
-                String json = new ObjectMapper().writeValueAsString(finalGraph);
-                if (templateStream == null) {
-                    throw new IllegalStateException("template.html not found");
-                }
-                String template = new String(templateStream.readAllBytes(), StandardCharsets.UTF_8);
-                String renderedTemplate = template.replace("'{{graphData}}'", json);
-
-                Path projectDir = Paths.get(System.getProperty("user.dir"));
-                Files.writeString(projectDir.resolve("class-diagram.html"), renderedTemplate);
-            } catch (IOException e) {
-                throw new RuntimeException(e);
-            }
+            HtmlPageGenerator.generate(ctx);
         }
         return emptyList();
     }
@@ -310,8 +292,20 @@ public class ProjectAerialViewGenerator extends ScanningRecipe<ProjectAerialView
      * The accumulator for the recipe, holding the graph data.
      */
     public static class GraphScanAccumulator {
-        public List<Node> nodes = new ArrayList<>();
-        public List<Link> links = new ArrayList<>();
+        public List<Node> nodes;
+        public List<Link> links;
+
+        public GraphScanAccumulator() {
+            super();
+            this.nodes = new ArrayList<>();
+            this.links = new ArrayList<>();
+        }
+
+        public GraphScanAccumulator(Stream<@NotNull Node> nodes, Stream<@NotNull Link> links) {
+            super();
+            this.nodes = nodes.collect(Collectors.toList());
+            this.links = links.collect(Collectors.toList());
+        }
 
         public Optional<Node> findNode(String id) {
             return nodes.stream().filter(n -> n.getClassName().equals(id)).findFirst();
