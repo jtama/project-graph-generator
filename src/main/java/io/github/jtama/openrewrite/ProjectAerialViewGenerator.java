@@ -73,11 +73,11 @@ public class ProjectAerialViewGenerator extends ScanningRecipe<ProjectAerialView
         this.generateHTMLView = generateHTMLView;
     }
 
-    public Boolean includeTests() {
+    public boolean includeTests() {
         return includeTests != null && includeTests;
     }
 
-    public Boolean generateHTMLView() {
+    public boolean generateHTMLView() {
         return generateHTMLView == null || generateHTMLView;
     }
 
@@ -205,17 +205,26 @@ public class ProjectAerialViewGenerator extends ScanningRecipe<ProjectAerialView
             }
 
             private void addLinkForType(JavaType type, ExecutionContext ctx) {
-
-                switch (type) {
-                    case null -> {
-                    }
-                    case JavaType.Primitive primitive -> {
-                    }
-                    case JavaType.FullyQualified fq -> addLink(fq);
-                    case JavaType.Array array -> addLink((JavaType.FullyQualified) array.getElemType());
-                    case JavaType.GenericTypeVariable gtv -> gtv.getBounds().stream().forEach(b -> addLinkForType(b, ctx));
-                    default -> javaTypesNotHandledReport.insertRow(ctx, new JavaTypesNotHandledReport.Row(type));
+                if (type == null || type instanceof JavaType.Primitive) {
+                    return;
                 }
+
+                if (type instanceof JavaType.FullyQualified fq) {
+                    addLink(fq);
+                    return;
+                }
+
+                if (type instanceof JavaType.Array array && array.getElemType() instanceof JavaType.FullyQualified) {
+                    addLink((JavaType.FullyQualified) array.getElemType());
+                    return;
+                }
+
+                if (type instanceof JavaType.GenericTypeVariable gtv) {
+                    gtv.getBounds().forEach(b -> addLinkForType(b, ctx));
+                    return;
+                }
+
+                javaTypesNotHandledReport.insertRow(ctx, new JavaTypesNotHandledReport.Row(type));
             }
 
             private boolean isPackageExcluded(String packageName) {
