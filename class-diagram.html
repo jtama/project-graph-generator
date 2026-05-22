@@ -224,7 +224,7 @@
     const tabContentTable = document.getElementById('tab-content-table');
 
     // @formatter:off
-    let invocationData = JSON.parse('{{ invocationCount }}');
+    let invocationData = JSON.parse('[]');
 
     // @formatter:on
 
@@ -322,7 +322,7 @@
 
     // @formatter:off
     // This is for templating replacement...
-    const originalGraphData = JSON.parse('{{ graphData }}');
+    const originalGraphData = JSON.parse('{"nodes":[{"artifactId":"my-app","className":"com.yourorg.FooBar","packageName":"com.yourorg","incomingConnections":1,"outgoingConnections":0},{"artifactId":"my-app","className":"com.yourorg.BarBar","packageName":"com.yourorg","incomingConnections":0,"outgoingConnections":1},{"artifactId":"my-app","className":"com.yourorg.FooBar","packageName":"com.yourorg","incomingConnections":1,"outgoingConnections":0},{"artifactId":"my-app","className":"com.yourorg.BarBar","packageName":"com.yourorg","incomingConnections":0,"outgoingConnections":1}],"links":[{"source":"com.yourorg.BarBar","target":"com.yourorg.FooBar","weight":6},{"source":"com.yourorg.BarBar","target":"com.yourorg.FooBar","weight":6}]}');
     // @formatter:on
     let currentNodes = originalGraphData.nodes;
     let currentLinks = originalGraphData.links.map(l => ({
@@ -334,8 +334,8 @@
     let color;
     let communityCenters = {};
 
-    let width = window.innerWidth;
-    let height = window.innerHeight;
+    const width = window.innerWidth;
+    const height = window.innerHeight;
 
     // Tooltip (Styled with Tailwind classes via d3 attrs)
     const tooltip = d3.select("body").append("div")
@@ -360,14 +360,11 @@
     const defs = svg.append("defs");
     const allGradients = [];
 
-    const gContainer = svg.append("g")
-        .attr("class", "zoom-container");
-
-    let allLinks = gContainer.append("g")
+    let allLinks = svg.append("g")
         .attr("class", "links")
         .selectAll("line");
 
-    let allNodes = gContainer.append("g")
+    let allNodes = svg.append("g")
         .attr("class", "nodes")
         .selectAll("circle");
 
@@ -388,7 +385,7 @@
         '#9a6324', '#fffac8', '#800000', '#aaffc3', '#808000', '#ffd8b1',
         '#000075', '#808080', '#ffffff', '#000000'
     ];
-    let topCommunitiesValue = 30;
+    let currentColors = allColors.slice();
 
     const weightSlider = d3.select("#weight-filter");
     const sizeChooser = d3.select("#size-chooser");
@@ -403,6 +400,7 @@
 
     const topCommunitiesSlider = d3.select("#top-communities-number");
     const topCommunitiesValueSpan = d3.select("#top-communities-number-value");
+
     topCommunitiesSlider
         .attr("min", 5)
         .attr("max", 30)
@@ -437,18 +435,8 @@
     weightSlider.on("input", function () {
         const maxWeight = +this.value;
         weightValueSpan.text(maxWeight);
-        filterNodes(n => sizeExtractor(n) <= maxWeight)
-        redraw();
-    });
 
-    topCommunitiesSlider.on("input", function () {
-        topCommunitiesValue = +this.value;
-        topCommunitiesValueSpan.text(topCommunitiesValue);
-        redraw();
-    });
-
-    function filterNodes(filter) {
-        const filteredNodes = originalGraphData.nodes.filter(filter)
+        const filteredNodes = originalGraphData.nodes.filter(n => sizeExtractor(n) <= maxWeight)
         const filteredNodeIds = new Set(filteredNodes.map(n => n.className));
         const filteredLinks = originalGraphData.links
             .filter(l => filteredNodeIds.has(l.source) && filteredNodeIds.has(l.target))
@@ -461,7 +449,16 @@
 
         currentNodes = filteredNodes;
         currentLinks = filteredLinks;
-    }
+
+        redraw();
+    });
+
+    topCommunitiesSlider.on("input", function () {
+        const colorNumber = +this.value;
+        topCommunitiesValueSpan.text(colorNumber);
+        currentColors = allColors.slice(0, colorNumber)
+        redraw();
+    });
 
 
     function clickHandler(event, d) {
@@ -529,8 +526,8 @@
 
         allCommunities = Object.values(allCommunities);
         allCommunities.sort((a, b) => b.weight - a.weight);
-        allCommunities = allCommunities.slice(0, topCommunitiesValue);
-        filterNodes(node => allCommunities.find(community => community.community === node.community))
+        allCommunities = allCommunities.slice(0, topCommunitiesValueSpan);
+        currentNodes = nodes.filter(node => allCommunities.includes(node.community));
     }
 
     function getColor(d) {
@@ -546,11 +543,7 @@
 
         allCommunities = Object.values(allCommunities);
         allCommunities.sort((a, b) => b.weight - a.weight);
-
-        color = allCommunities.reduce((map, item, index) => {
-            map[item.community] = {item, color: allColors[index] || '#9E9E9E'};
-            return map;
-        }, {});
+        allCommunities = allCommunities.slice(0, topCommunitiesValueSpan);
 
         legendContainer.selectAll("*").remove();
 
@@ -562,7 +555,7 @@
 
         legendItems.append("div")
             .attr("class", "w-4 h-4 rounded shadow-sm flex-shrink-0")
-            .style("background-color", d => getColor(d));
+            .style("background-color", d => color[d.community].color);
 
         legendItems.append("input")
             .attr("type", "checkbox")
@@ -676,8 +669,14 @@
     function ticked() {
         allNodes
             .attr("r", d => 5 + sizeExtractor(d) / 2)
-            .attr("cx", d => d.x)
-            .attr("cy", d => d.y);
+            .attr("cx", d => {
+                const radius = 5 + sizeExtractor(d) / 2;
+                return d.x = Math.max(radius, Math.min(width - radius, d.x));
+            })
+            .attr("cy", d => {
+                const radius = 5 + sizeExtractor(d) / 2;
+                return d.y = Math.max(radius, Math.min(height - radius, d.y));
+            });
 
         allLinks
             .attr("x1", d => d.source.x)
@@ -704,25 +703,13 @@
     }
 
     function handleZoom(e) {
-        gContainer.attr('transform', e.transform);
+        allLinks.attr('transform', e.transform);
+        allNodes.attr('transform', e.transform);
     }
 
     function initZoom() {
         svg.call(myZoom);
     }
-
-    window.addEventListener('resize', () => {
-        width = window.innerWidth;
-        height = window.innerHeight;
-
-        svg.attr("width", width).attr("height", height);
-
-        simulation.force("center", d3.forceCenter(width / 2, height / 2));
-        simulation.force("x", d3.forceX(d => communityCenters[d.community]?.x || width / 2).strength(0.05));
-        simulation.force("y", d3.forceY(d => communityCenters[d.community]?.y || height / 2).strength(0.05));
-
-        simulation.alpha(0.3).restart();
-    });
 </script>
 </body>
 </html>

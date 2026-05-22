@@ -25,13 +25,13 @@ class ProjectAerialViewGeneratorTest implements RewriteTest {
     void addsHelloToFooBar() {
         rewriteRun(
                 spec -> spec.expectedCyclesThatMakeChanges(0)
-                        .recipes(new CountPublicMethodInvocations("com.yourorg", false, true),
+                        .recipes(new ProjectAerialViewGenerator(null, "com.yourorg", false, true),
                                 new ProjectAerialViewGenerator()),
                 java(
                         """
                                 package com.yourorg;
 
-                                class FooBar {
+                                class FooBar<T> {
                                      @Override
                                      public String toString() {
                                          return super.toString();
@@ -43,10 +43,12 @@ class ProjectAerialViewGeneratorTest implements RewriteTest {
                 java(
                         """
                                 package com.yourorg;
+                                import java.util.List;
+                                import java.util.Arrays;
 
                                 class BarBar {
+                                    private List<FooBar> tutu = Arrays.asList(new FooBar(), new FooBar());
                                     private FooBar foo = new FooBar();
-                                    private String tutu = foo.toString();
                                 }
                                 """,
                         spec -> spec.markers(new JavaProject(UUID.randomUUID(), "NoUseForAName",
