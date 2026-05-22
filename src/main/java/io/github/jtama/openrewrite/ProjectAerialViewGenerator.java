@@ -171,7 +171,7 @@ public class ProjectAerialViewGenerator extends ScanningRecipe<ProjectAerialView
                 JavaType.Method methodType = memberReference.getMethodType();
                 //Method type could be null if there was a problem resolving dependencies or parsing the related class
                 if (methodType != null) {
-                    addLink(methodType.getDeclaringType());
+                    addLinkForType(methodType.getDeclaringType(), ctx);
                 }
                 return member;
             }
@@ -190,41 +190,63 @@ public class ProjectAerialViewGenerator extends ScanningRecipe<ProjectAerialView
                 JavaType.FullyQualified targetType = mi.getMethodType() != null ? mi.getMethodType().getDeclaringType() : null;
                 if (targetType != null) {
                     // Method target type could be null for groovy or kotlin projects
-                    addLink(targetType);
+                    addLinkForType(targetType, ctx);
                 }
                 return mi;
+            }
+
+            @Override
+            public J.VariableDeclarations visitVariableDeclarations(J.VariableDeclarations multiVariable,
+                    @NotNull ExecutionContext executionContext) {
+                J.VariableDeclarations mv = super.visitVariableDeclarations(multiVariable, executionContext);
+                mv.getVariables().forEach(v -> addLinkForType(v.getType(), executionContext));
+                return mv;
             }
 
             @Override
             public J.@NotNull NewClass visitNewClass(J.@NotNull NewClass newClass, ExecutionContext ctx) {
                 J.NewClass visitedNewClass = super.visitNewClass(newClass, ctx);
                 if (visitedNewClass.getMethodType() != null) {
-                    addLink(visitedNewClass.getMethodType().getDeclaringType());
+                    addLinkForType(visitedNewClass.getMethodType().getDeclaringType(), ctx);
+                    visitedNewClass.getMethodType().getDeclaringType().getTypeParameters()
+                            .forEach(type -> addLinkForType(type, ctx));
                 }
                 return visitedNewClass;
             }
 
-            private void addLinkForType(JavaType type, ExecutionContext ctx) {
-                if (type == null || type instanceof JavaType.Primitive) {
+            private void addLinkForType(JavaType jType, ExecutionContext ctx) {
+                addLinkForType(jType, ctx, 0);
+            }
+
+            private void addLinkForType(JavaType jType, ExecutionContext ctx, Integer depth) {
+                if (depth > 5) {
+                    //This is a chicken and egg case.
                     return;
                 }
 
-                if (type instanceof JavaType.FullyQualified fq) {
+                if (jType == null || jType instanceof JavaType.Primitive || jType instanceof JavaType.Unknown) {
+                    return;
+                }
+
+                if (jType instanceof JavaType.FullyQualified fq) {
+                    fq.getTypeParameters().forEach(type -> addLinkForType(type, ctx, depth + 1));
                     addLink(fq);
                     return;
                 }
 
-                if (type instanceof JavaType.Array array && array.getElemType() instanceof JavaType.FullyQualified) {
+                if (jType instanceof JavaType.Array array && array.getElemType() instanceof JavaType.FullyQualified) {
                     addLink((JavaType.FullyQualified) array.getElemType());
+                    ((JavaType.FullyQualified) array.getElemType()).getTypeParameters()
+                            .forEach(type -> addLinkForType(type, ctx, depth + 1));
                     return;
                 }
 
-                if (type instanceof JavaType.GenericTypeVariable gtv) {
-                    gtv.getBounds().forEach(b -> addLinkForType(b, ctx));
+                if (jType instanceof JavaType.GenericTypeVariable gtv) {
+                    gtv.getBounds().forEach(b -> addLinkForType(b, ctx, depth + 1));
                     return;
                 }
 
-                javaTypesNotHandledReport.insertRow(ctx, new JavaTypesNotHandledReport.Row(type));
+                javaTypesNotHandledReport.insertRow(ctx, new JavaTypesNotHandledReport.Row(jType));
             }
 
             private boolean isPackageExcluded(String packageName) {
@@ -232,7 +254,6 @@ public class ProjectAerialViewGenerator extends ScanningRecipe<ProjectAerialView
             }
 
             private void addLink(@NotNull JavaType.FullyQualified targetType) {
-
                 if (isPackageExcluded(targetType.getPackageName()))
                     return;
                 J.ClassDeclaration enclosingClass = getCursor().firstEnclosing(J.ClassDeclaration.class);
