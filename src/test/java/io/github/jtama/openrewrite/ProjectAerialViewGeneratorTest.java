@@ -4,7 +4,6 @@ import static org.openrewrite.java.Assertions.java;
 
 import java.util.UUID;
 
-import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.openrewrite.java.JavaParser;
 import org.openrewrite.java.marker.JavaProject;
@@ -21,7 +20,6 @@ class ProjectAerialViewGeneratorTest implements RewriteTest {
     }
 
     @Test
-    @Disabled
     void addsHelloToFooBar() {
         rewriteRun(
                 spec -> spec.expectedCyclesThatMakeChanges(0)
