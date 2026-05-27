@@ -1,0 +1,6 @@
+type: specs.openrewrite.org/v1beta/recipe
+name: io.github.jtama.openrewrite.ProjectAerialViewGenerator # This is the name of your recipe to activate
+displayName: Generate Project Aerial View
+recipeList:  # This is the list of recipes to run
+  - io.github.jtama.openrewrite.ProjectGraphGenerator:
+  - io.github.jtama.openrewrite.CountPublicMethodInvocations:

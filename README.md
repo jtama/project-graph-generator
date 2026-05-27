@@ -9,7 +9,7 @@
 
 Two main recipes are available in this repository.
 
-### `io.github.jtama.openrewrite.ProjectAerialViewGenerator`
+### `io.github.jtama.openrewrite.ProjectGraphGenerator`
 
 Generates the internal dependency graph of your java project.
 With multiple output formats, this recipe will help you get a *better* grasp of your internal dependencies.
@@ -65,13 +65,14 @@ mvn -U org.openrewrite.maven:rewrite-maven-plugin:run \
 -Drewrite.recipeArtifactCoordinates=io.github.jtama:project-graph-generator:RELEASE \
 -Drewrite.activeRecipes=io.github.jtama.openrewrite.ProjectAerialViewGenerator
 ```
+This will trigger both recipes.
 
-With full options
+With full options (sample for one recipe)
 
 ```console
 mvn -U org.openrewrite.maven:rewrite-maven-plugin:run \
 -Drewrite.recipeArtifactCoordinates=io.github.jtama:project-graph-generator:RELEASE \
--Drewrite.activeRecipes=io.github.jtama.openrewrite.ProjectAerialViewGenerator \
+-Drewrite.activeRecipes=io.github.jtama.openrewrite.ProjectGraphGenerator \
 -Drewrite.options=maxNodes=8,basePackages=com.foo:io.github.jtama,includeTests=true,generateHTMLView=false,includeTests=true \
 -Drewrite.exportDatatables=true
 ```
@@ -98,7 +99,7 @@ dependencies {
 // Add OpenRewrite configuration
 rewrite {
     // Activate the recipe of this project
-    activeRecipe("io.github.jtama.openrewrite.ProjectAerialViewGenerator")
+    activeRecipe("io.github.jtama.openrewrite.ProjectGraphGenerator")
     setExportDatatables true
 }
 ```
@@ -130,7 +131,7 @@ type: specs.openrewrite.org/v1beta/recipe
 name: com.yourorg.ProjectAerialViewGenerator # This is the name of your recipe to activate
 displayName: Generate Project Aerial View
 recipeList:  # This is the list of recipes to run
-  - io.github.jtama.openrewrite.ProjectAerialViewGenerator:
+  - io.github.jtama.openrewrite.ProjectGraphGenerator:
       basePackages: "com.yourorg"
       includeTests: false
       generateHTMLView: true

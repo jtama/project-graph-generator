@@ -1,12 +1,18 @@
 package io.github.jtama.openrewrite;
 
-import com.fasterxml.jackson.annotation.JsonCreator;
-import io.github.jtama.openrewrite.model.Link;
-import io.github.jtama.openrewrite.model.Node;
-import io.github.jtama.openrewrite.report.JavaSourceFileExcludedReport;
-import io.github.jtama.openrewrite.report.JavaTypesNotHandledReport;
-import io.github.jtama.openrewrite.report.LinksReport;
-import io.github.jtama.openrewrite.report.NodesReport;
+import static java.util.Collections.emptyList;
+import static java.util.function.Predicate.not;
+
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.Comparator;
+import java.util.List;
+import java.util.Optional;
+import java.util.function.Predicate;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
+
 import org.jspecify.annotations.NonNull;
 import org.jspecify.annotations.Nullable;
 import org.openrewrite.Cursor;
@@ -21,23 +27,19 @@ import org.openrewrite.java.tree.J;
 import org.openrewrite.java.tree.JavaSourceFile;
 import org.openrewrite.java.tree.JavaType;
 
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.Comparator;
-import java.util.List;
-import java.util.Optional;
-import java.util.function.Predicate;
-import java.util.stream.Collectors;
-import java.util.stream.Stream;
+import com.fasterxml.jackson.annotation.JsonCreator;
 
-import static java.util.Collections.emptyList;
-import static java.util.function.Predicate.not;
+import io.github.jtama.openrewrite.model.Link;
+import io.github.jtama.openrewrite.model.Node;
+import io.github.jtama.openrewrite.report.JavaSourceFileExcludedReport;
+import io.github.jtama.openrewrite.report.JavaTypesNotHandledReport;
+import io.github.jtama.openrewrite.report.LinksReport;
+import io.github.jtama.openrewrite.report.NodesReport;
 
 /**
  * An OpenRewrite recipe that scans a Java project and generates it's internal dependency graph
  */
-public class ProjectAerialViewGenerator extends ScanningRecipe<ProjectAerialViewGenerator.@NonNull GraphScanAccumulator> {
+public class ProjectGraphGenerator extends ScanningRecipe<ProjectGraphGenerator.@NonNull GraphScanAccumulator> {
 
     @Option(displayName = "Maximum nodes", description = "The maximum number of nodes to display in the graph. We will try to retain the largest nodes.", required = false)
     private Integer maxNodes;
@@ -61,11 +63,11 @@ public class ProjectAerialViewGenerator extends ScanningRecipe<ProjectAerialView
 
     transient JavaSourceFileExcludedReport javaSourceFileExcludedReport = new JavaSourceFileExcludedReport(this);
 
-    public ProjectAerialViewGenerator() {
+    public ProjectGraphGenerator() {
     }
 
     @JsonCreator
-    public ProjectAerialViewGenerator(Integer maxNodes, String basePackages, Boolean includeTests, Boolean generateHTMLView) {
+    public ProjectGraphGenerator(Integer maxNodes, String basePackages, Boolean includeTests, Boolean generateHTMLView) {
         this.maxNodes = maxNodes;
         this.basePackages = basePackages;
         this.includeTests = includeTests;

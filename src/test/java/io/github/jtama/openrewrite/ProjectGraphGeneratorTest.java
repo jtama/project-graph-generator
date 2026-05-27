@@ -11,7 +11,7 @@ import org.openrewrite.java.marker.JavaProject;
 import org.openrewrite.test.RecipeSpec;
 import org.openrewrite.test.RewriteTest;
 
-class ProjectAerialViewGeneratorTest implements RewriteTest {
+class ProjectGraphGeneratorTest implements RewriteTest {
 
     @Override
     public void defaults(RecipeSpec spec) {
@@ -25,8 +25,8 @@ class ProjectAerialViewGeneratorTest implements RewriteTest {
     void addsHelloToFooBar() {
         rewriteRun(
                 spec -> spec.expectedCyclesThatMakeChanges(0)
-                        .recipes(new ProjectAerialViewGenerator(null, "com.yourorg", false, true),
-                                new ProjectAerialViewGenerator()),
+                        .recipes(new ProjectGraphGenerator(null, "com.yourorg", false, true),
+                                new ProjectGraphGenerator()),
                 java(
                         """
                                 package com.yourorg;

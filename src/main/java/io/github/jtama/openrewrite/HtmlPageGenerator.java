@@ -35,7 +35,7 @@ public class HtmlPageGenerator {
 
         try (InputStream templateStream = HtmlPageGenerator.class.getResourceAsStream("template.html")) {
             String graphAsJson = new ObjectMapper()
-                    .writeValueAsString(new ProjectAerialViewGenerator.GraphScanAccumulator(nodes, links));
+                    .writeValueAsString(new ProjectGraphGenerator.GraphScanAccumulator(nodes, links));
             String invocationCountAsJson = new ObjectMapper().writeValueAsString(methodInvocations.toList());
             if (templateStream == null) {
                 throw new IllegalStateException("template.html not found");
