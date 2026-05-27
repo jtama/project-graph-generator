@@ -224,7 +224,27 @@
     const tabContentTable = document.getElementById('tab-content-table');
 
     // @formatter:off
-    let invocationData = JSON.parse('{{ invocationCount }}');
+    let invocationData;
+    try {
+        const invocationCountPlaceholder = '{{ invocationCount }}';
+        if (invocationCountPlaceholder === '[]') {
+            // Placeholder was not replaced, set empty array
+            invocationData = [];
+        } else {
+            invocationData = JSON.parse(invocationCountPlaceholder);
+        }
+    } catch (e) {
+        console.error("Failed to parse invocationCount:", e);
+        invocationData = [];
+    }
+
+    if (invocationData.length === 0) {
+        tabBtnTable.style.display = 'none';
+        tabContentTable.classList.add('hidden');
+        tabBtnGraph.className = 'px-4 py-2 rounded-full text-sm font-semibold bg-indigo-600 text-white shadow transition-colors focus:outline-none';
+        tabContentGraph.classList.remove('hidden');
+    }
+
 
     // @formatter:on
 
@@ -246,7 +266,7 @@
         
         let filteredData = invocationData;
         if (searchTerm) {
-            filteredData = invocationData.filter(row => String(row.name).toLowerCase().includes(searchTerm));
+            filteredData = invocationData.filter(row => String(row.methodName || row.name).toLowerCase().includes(searchTerm));
         }
 
         const sortedData = [...filteredData].sort((a, b) => {
@@ -264,7 +284,7 @@
         });
 
         if (!maxCount) {
-            maxCount = sortedData[0].count;
+            maxCount = sortedData.length > 0 ? sortedData[0].count : 1; // Default to 1 to prevent division by zero if no data
         }
 
 
@@ -322,7 +342,26 @@
 
     // @formatter:off
     // This is for templating replacement...
-    const originalGraphData = JSON.parse('{{ graphData }}');
+    let originalGraphData;
+    try {
+        const graphDataPlaceholder = '{{ graphData }}';
+        if (graphDataPlaceholder === '[]') {
+            // Placeholder was not replaced, set empty graph data
+            originalGraphData = { nodes: [], links: [] };
+        } else {
+            originalGraphData = JSON.parse(graphDataPlaceholder);
+        }
+    } catch (e) {
+        console.error("Failed to parse graphData:", e);
+        originalGraphData = { nodes: [], links: [] };
+    }
+
+    if (originalGraphData.length === 0) {
+        tabBtnGraph.style.display = 'none';
+        tabContentTable.classList.remove('hidden');
+        tabContentGraph.classList.add('hidden');
+    }
+
     // @formatter:on
     let currentNodes = originalGraphData.nodes;
     let currentLinks = originalGraphData.links.map(l => ({
@@ -379,16 +418,16 @@
     initZoom();
 
     // --- Dynamic Range Slider Setup ---
-    const allSizes = originalGraphData.nodes.map(d => d.size);
-    const minSize = d3.min(allSizes) || 0;
-    const maxSize = d3.max(allSizes) || 100;
+    const allSizes = originalGraphData.nodes.map(d => d.incomingConnections).sort((a, b) => a - b);
+    const minSize = allSizes[0] || 0;
+    const maxSize = allSizes[allSizes.length - 1] || 100;
+
     const allColors = [
         '#e6194b', '#3cb44b', '#ffe119', '#4363d8', '#f58231', '#911eb4',
         '#46f0f0', '#f032e6', '#bcf60c', '#fabebe', '#008080', '#e6beff',
         '#9a6324', '#fffac8', '#800000', '#aaffc3', '#808000', '#ffd8b1',
         '#000075', '#808080', '#ffffff', '#000000'
     ];
-    let topCommunitiesValue = 30;
 
     const weightSlider = d3.select("#weight-filter");
     const sizeChooser = d3.select("#size-chooser");
@@ -409,46 +448,57 @@
         .attr("value", 30);
     topCommunitiesValueSpan.text(30);
 
-    d3.select("#search").on("input", function () {
-        const searchTerm = this.value.toLowerCase();
-        allNodes.style("opacity", n => n.className.toLowerCase().includes(searchTerm) ? 1 : 0.1);
-        allLinks.style("opacity", l => l.source.className.toLowerCase().includes(searchTerm) || l.target.className.toLowerCase().includes(searchTerm) ? 1 : 0.1);
-        
-        // Filter table rows if table is visible
-        if (!tabContentTable.classList.contains('hidden')) {
-            renderInvocationTable(searchTerm);
-        }
-    });
+    let lastCommunityMethod = null;
 
-    sizeChooser.on("input", function () {
-        if (this.value === "incoming") {
+    function applyFilters() {
+        const searchTerm = d3.select("#search").node().value.toLowerCase();
+        const sizeOption = sizeChooser.node().value;
+        communityMethod = community.node().value;
+        const maxWeight = +weightSlider.node().value;
+        const topCommunitiesValue = +topCommunitiesSlider.node().value;
+
+        if (sizeOption === "incoming") {
             sizeExtractor = node => node.incomingConnections;
         } else {
             sizeExtractor = node => node.outgoingConnections;
         }
-        redraw();
-    })
 
-    community.on("input", function () {
-        communityMethod = this.value;
-        redraw();
-    })
+        if (communityMethod !== lastCommunityMethod) {
+            if (communityMethod === 'louvain') {
+                const nodeData = originalGraphData.nodes.map(d => d.className);
+                const linkData = originalGraphData.links.map(l => ({
+                    source: l.source,
+                    target: l.target,
+                    weight: l.weight || 1
+                }));
+                if (nodeData.length > 0) {
+                    const communityFunc = jLouvain.jLouvain().nodes(nodeData).edges(linkData);
+                    const communityResult = communityFunc();
+                    originalGraphData.nodes.forEach(node => {
+                        node.community = communityResult ? communityResult[node.className] : 0;
+                    });
+                }
+            } else {
+                originalGraphData.nodes.forEach(node => {
+                    node.community = node.artifactId;
+                });
+            }
+            lastCommunityMethod = communityMethod;
+        }
 
-    weightSlider.on("input", function () {
-        const maxWeight = +this.value;
-        weightValueSpan.text(maxWeight);
-        filterNodes(n => sizeExtractor(n) <= maxWeight)
-        redraw();
-    });
+        let allCommunities = originalGraphData.nodes.reduce((acc, item) => {
+            acc[item.community] = acc[item.community] || {community: item.community, weight: 0};
+            acc[item.community].weight++;
+            return acc;
+        }, {});
 
-    topCommunitiesSlider.on("input", function () {
-        topCommunitiesValue = +this.value;
-        topCommunitiesValueSpan.text(topCommunitiesValue);
-        redraw();
-    });
+        let sortedCommunities = Object.values(allCommunities).sort((a, b) => b.weight - a.weight);
+        const topCommunities = new Set(sortedCommunities.slice(0, topCommunitiesValue).map(c => c.community));
 
-    function filterNodes(filter) {
-        const filteredNodes = originalGraphData.nodes.filter(filter)
+        const filteredNodes = originalGraphData.nodes.filter(n => {
+            return sizeExtractor(n) <= maxWeight && topCommunities.has(n.community);
+        });
+
         const filteredNodeIds = new Set(filteredNodes.map(n => n.className));
         const filteredLinks = originalGraphData.links
             .filter(l => filteredNodeIds.has(l.source) && filteredNodeIds.has(l.target))
@@ -458,10 +508,31 @@
                 target: filteredNodes.find(n => n.className === l.target),
             }));
 
-
         currentNodes = filteredNodes;
         currentLinks = filteredLinks;
+
+        updateLegend(currentNodes);
+        updateVisualization();
+
+        allNodes.style("opacity", n => n.className.toLowerCase().includes(searchTerm) ? 1 : 0.1);
+        allLinks.style("opacity", l => l.source.className.toLowerCase().includes(searchTerm) || l.target.className.toLowerCase().includes(searchTerm) ? 1 : 0.1);
+        
+        if (!tabContentTable.classList.contains('hidden')) {
+            renderInvocationTable(searchTerm);
+        }
     }
+
+    d3.select("#search").on("input", applyFilters);
+    sizeChooser.on("input", applyFilters);
+    community.on("input", applyFilters);
+    weightSlider.on("input", function () {
+        weightValueSpan.text(this.value);
+        applyFilters();
+    });
+    topCommunitiesSlider.on("input", function () {
+        topCommunitiesValueSpan.text(this.value);
+        applyFilters();
+    });
 
 
     function clickHandler(event, d) {
@@ -490,48 +561,7 @@
         }
     }
 
-    redraw();
-
-    function redraw() {
-        // Initial setup
-        calculateCommunities(currentNodes, currentLinks);
-        updateLegend(currentNodes);
-        updateVisualization();
-    }
-
-    function calculateCommunities(nodes, links) {
-        if (communityMethod === 'louvain') {
-            const nodeData = nodes.map(d => d.className);
-            const linkData = links.map(l => ({
-                source: l.source.className,
-                target: l.target.className,
-                weight: l.weight || 1
-            }));
-            if (nodeData.length === 0) return;
-
-            const community = jLouvain.jLouvain().nodes(nodeData).edges(linkData);
-            const communityResult = community();
-
-            nodes.forEach(node => {
-                //if no community exists, then unilaterally assign community 0
-                node.community = communityResult ? communityResult[node.className] : 0;
-            });
-        } else {
-            nodes.forEach(node => {
-                node.community = node.artifactId;
-            });
-        }
-        let allCommunities = nodes.reduce((acc, item) => {
-            acc[item.community] = acc[item.community] || {community: item.community, weight: 0};
-            acc[item.community].weight++;
-            return acc;
-        }, {});
-
-        allCommunities = Object.values(allCommunities);
-        allCommunities.sort((a, b) => b.weight - a.weight);
-        allCommunities = allCommunities.slice(0, topCommunitiesValue);
-        filterNodes(node => allCommunities.find(community => community.community === node.community))
-    }
+    applyFilters();
 
     function getColor(d) {
         return color[d.community] ? color[d.community].color : '#9E9E9E';
