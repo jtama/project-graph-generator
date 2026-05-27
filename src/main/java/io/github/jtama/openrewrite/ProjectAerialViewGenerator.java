@@ -1,19 +1,14 @@
 package io.github.jtama.openrewrite;
 
-import static java.util.Collections.emptyList;
-import static java.util.function.Predicate.not;
-
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.Comparator;
-import java.util.List;
-import java.util.Optional;
-import java.util.function.Predicate;
-import java.util.stream.Collectors;
-import java.util.stream.Stream;
-
-import org.jetbrains.annotations.NotNull;
+import com.fasterxml.jackson.annotation.JsonCreator;
+import io.github.jtama.openrewrite.model.Link;
+import io.github.jtama.openrewrite.model.Node;
+import io.github.jtama.openrewrite.report.JavaSourceFileExcludedReport;
+import io.github.jtama.openrewrite.report.JavaTypesNotHandledReport;
+import io.github.jtama.openrewrite.report.LinksReport;
+import io.github.jtama.openrewrite.report.NodesReport;
+import org.jspecify.annotations.NonNull;
+import org.jspecify.annotations.Nullable;
 import org.openrewrite.Cursor;
 import org.openrewrite.ExecutionContext;
 import org.openrewrite.Option;
@@ -26,19 +21,23 @@ import org.openrewrite.java.tree.J;
 import org.openrewrite.java.tree.JavaSourceFile;
 import org.openrewrite.java.tree.JavaType;
 
-import com.fasterxml.jackson.annotation.JsonCreator;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.Comparator;
+import java.util.List;
+import java.util.Optional;
+import java.util.function.Predicate;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
-import io.github.jtama.openrewrite.model.Link;
-import io.github.jtama.openrewrite.model.Node;
-import io.github.jtama.openrewrite.report.JavaSourceFileExcludedReport;
-import io.github.jtama.openrewrite.report.JavaTypesNotHandledReport;
-import io.github.jtama.openrewrite.report.LinksReport;
-import io.github.jtama.openrewrite.report.NodesReport;
+import static java.util.Collections.emptyList;
+import static java.util.function.Predicate.not;
 
 /**
  * An OpenRewrite recipe that scans a Java project and generates it's internal dependency graph
  */
-public class ProjectAerialViewGenerator extends ScanningRecipe<ProjectAerialViewGenerator.@NotNull GraphScanAccumulator> {
+public class ProjectAerialViewGenerator extends ScanningRecipe<ProjectAerialViewGenerator.@NonNull GraphScanAccumulator> {
 
     @Option(displayName = "Maximum nodes", description = "The maximum number of nodes to display in the graph. We will try to retain the largest nodes.", required = false)
     private Integer maxNodes;
@@ -90,12 +89,12 @@ public class ProjectAerialViewGenerator extends ScanningRecipe<ProjectAerialView
     }
 
     @Override
-    public @NotNull String getDisplayName() {
+    public @NonNull String getDisplayName() {
         return "Project graph generator";
     }
 
     @Override
-    public @NotNull String getDescription() {
+    public @NonNull String getDescription() {
         return """
                 Generates the internal dependency graph of your java project.
                 With multiple output formats, this recipe will help you get a *better* grasp of your internal dependencies.
@@ -104,16 +103,16 @@ public class ProjectAerialViewGenerator extends ScanningRecipe<ProjectAerialView
     }
 
     @Override
-    public GraphScanAccumulator getInitialValue(@NotNull ExecutionContext ctx) {
+    public @NonNull GraphScanAccumulator getInitialValue(@NonNull ExecutionContext ctx) {
         return new GraphScanAccumulator();
     }
 
     @Override
-    public @NotNull TreeVisitor<?, @NotNull ExecutionContext> getScanner(GraphScanAccumulator graph) {
+    public @NonNull TreeVisitor<?, @NonNull ExecutionContext> getScanner(@NonNull GraphScanAccumulator graph) {
         return new JavaIsoVisitor<>() {
 
             @Override
-            public J preVisit(@NotNull J tree, ExecutionContext ctx) {
+            public J preVisit(@NonNull J tree, @NonNull ExecutionContext ctx) {
                 if (tree instanceof JavaSourceFile javaSourceFile) {
                     javaSourceFile.getMarkers().findFirst(JavaProject.class).ifPresent(javaProject -> {
                         if (javaProject.getPublication() != null
@@ -132,7 +131,7 @@ public class ProjectAerialViewGenerator extends ScanningRecipe<ProjectAerialView
             }
 
             @Override
-            public J.@NotNull ClassDeclaration visitClassDeclaration(J.@NotNull ClassDeclaration classDecl,
+            public J.@NonNull ClassDeclaration visitClassDeclaration(J.@NonNull ClassDeclaration classDecl,
                     ExecutionContext executionContext) {
                 if (includeTests() || not(isTestClass()).test(getCursor())) {
                     J.CompilationUnit cu = getCursor().dropParentUntil(value -> value instanceof J.CompilationUnit).getValue();
@@ -151,6 +150,7 @@ public class ProjectAerialViewGenerator extends ScanningRecipe<ProjectAerialView
                             }
                         }
                     });
+
                     return super.visitClassDeclaration(classDecl, executionContext);
                 }
                 return classDecl;
@@ -165,84 +165,21 @@ public class ProjectAerialViewGenerator extends ScanningRecipe<ProjectAerialView
             }
 
             @Override
-            public J.@NotNull MemberReference visitMemberReference(J.@NotNull MemberReference memberReference,
-                    ExecutionContext ctx) {
-                var member = super.visitMemberReference(memberReference, ctx);
-                JavaType.Method methodType = memberReference.getMethodType();
-                //Method type could be null if there was a problem resolving dependencies or parsing the related class
-                if (methodType != null) {
-                    addLinkForType(methodType.getDeclaringType(), ctx);
+            public @Nullable JavaType visitType(@Nullable JavaType javaType, ExecutionContext executionContext) {
+                if (javaType != null && !(javaType instanceof JavaType.Unknown)) {
+                    addLinkForType(javaType, executionContext, 0);
                 }
-                return member;
-            }
-
-            @Override
-            public J.@NotNull FieldAccess visitFieldAccess(J.@NotNull FieldAccess fieldAccess,
-                    ExecutionContext ctx) {
-                var fa = super.visitFieldAccess(fieldAccess, ctx);
-                addLinkForType(fa.getTarget().getType(), ctx);
-                return fa;
-            }
-
-            @Override
-            public J.@NotNull MethodInvocation visitMethodInvocation(J.@NotNull MethodInvocation method, ExecutionContext ctx) {
-                var mi = super.visitMethodInvocation(method, ctx);
-                JavaType.FullyQualified targetType = mi.getMethodType() != null ? mi.getMethodType().getDeclaringType() : null;
-                if (targetType != null) {
-                    // Method target type could be null for groovy or kotlin projects
-                    addLinkForType(targetType, ctx);
-                }
-                return mi;
-            }
-
-            @Override
-            public J.VariableDeclarations visitVariableDeclarations(J.VariableDeclarations multiVariable,
-                    @NotNull ExecutionContext executionContext) {
-                J.VariableDeclarations mv = super.visitVariableDeclarations(multiVariable, executionContext);
-                mv.getVariables().forEach(v -> addLinkForType(v.getType(), executionContext));
-                return mv;
-            }
-
-            @Override
-            public J.@NotNull NewClass visitNewClass(J.@NotNull NewClass newClass, ExecutionContext ctx) {
-                J.NewClass visitedNewClass = super.visitNewClass(newClass, ctx);
-                if (visitedNewClass.getMethodType() != null) {
-                    addLinkForType(visitedNewClass.getMethodType().getDeclaringType(), ctx);
-                    visitedNewClass.getMethodType().getDeclaringType().getTypeParameters()
-                            .forEach(type -> addLinkForType(type, ctx));
-                }
-                return visitedNewClass;
-            }
-
-            private void addLinkForType(JavaType jType, ExecutionContext ctx) {
-                addLinkForType(jType, ctx, 0);
+                return javaType;
             }
 
             private void addLinkForType(JavaType jType, ExecutionContext ctx, Integer depth) {
-                if (depth > 5) {
-                    //This is a chicken and egg case.
-                    return;
-                }
-
-                if (jType == null || jType instanceof JavaType.Primitive || jType instanceof JavaType.Unknown) {
+                if (jType == null || jType instanceof JavaType.Primitive || jType instanceof JavaType.Unknown
+                        || jType instanceof JavaType.Array || jType instanceof JavaType.GenericTypeVariable) {
                     return;
                 }
 
                 if (jType instanceof JavaType.FullyQualified fq) {
-                    fq.getTypeParameters().forEach(type -> addLinkForType(type, ctx, depth + 1));
                     addLink(fq);
-                    return;
-                }
-
-                if (jType instanceof JavaType.Array array && array.getElemType() instanceof JavaType.FullyQualified) {
-                    addLink((JavaType.FullyQualified) array.getElemType());
-                    ((JavaType.FullyQualified) array.getElemType()).getTypeParameters()
-                            .forEach(type -> addLinkForType(type, ctx, depth + 1));
-                    return;
-                }
-
-                if (jType instanceof JavaType.GenericTypeVariable gtv) {
-                    gtv.getBounds().forEach(b -> addLinkForType(b, ctx, depth + 1));
                     return;
                 }
 
@@ -253,7 +190,7 @@ public class ProjectAerialViewGenerator extends ScanningRecipe<ProjectAerialView
                 return packages().stream().noneMatch(packageName::contains);
             }
 
-            private void addLink(@NotNull JavaType.FullyQualified targetType) {
+            private void addLink(JavaType.@NonNull FullyQualified targetType) {
                 if (isPackageExcluded(targetType.getPackageName()))
                     return;
                 J.ClassDeclaration enclosingClass = getCursor().firstEnclosing(J.ClassDeclaration.class);
@@ -290,7 +227,7 @@ public class ProjectAerialViewGenerator extends ScanningRecipe<ProjectAerialView
     }
 
     @Override
-    public @NotNull Collection<J.CompilationUnit> generate(GraphScanAccumulator graph, @NotNull ExecutionContext ctx) {
+    public @NonNull Collection<J.CompilationUnit> generate(GraphScanAccumulator graph, @NonNull ExecutionContext ctx) {
         GraphScanAccumulator finalGraph = filterGraph(graph);
         finalGraph.nodes.forEach(node -> nodesReport.insertRow(ctx, node));
         finalGraph.links.forEach(link -> linksReport.insertRow(ctx, link));
@@ -331,7 +268,7 @@ public class ProjectAerialViewGenerator extends ScanningRecipe<ProjectAerialView
             this.links = new ArrayList<>();
         }
 
-        public GraphScanAccumulator(Stream<@NotNull Node> nodes, Stream<@NotNull Link> links) {
+        public GraphScanAccumulator(Stream<@NonNull Node> nodes, Stream<@NonNull Link> links) {
             super();
             this.nodes = nodes.collect(Collectors.toList());
             this.links = links.collect(Collectors.toList());
