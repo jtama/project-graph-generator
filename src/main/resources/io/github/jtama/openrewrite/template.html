@@ -356,7 +356,7 @@
         originalGraphData = { nodes: [], links: [] };
     }
 
-    if (originalGraphData.length === 0) {
+    if (originalGraphData.nodes.length === 0) {
         tabBtnGraph.style.display = 'none';
         tabContentTable.classList.remove('hidden');
         tabContentGraph.classList.add('hidden');
@@ -516,7 +516,7 @@
 
         allNodes.style("opacity", n => n.className.toLowerCase().includes(searchTerm) ? 1 : 0.1);
         allLinks.style("opacity", l => l.source.className.toLowerCase().includes(searchTerm) || l.target.className.toLowerCase().includes(searchTerm) ? 1 : 0.1);
-        
+
         if (!tabContentTable.classList.contains('hidden')) {
             renderInvocationTable(searchTerm);
         }
