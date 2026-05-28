@@ -38,13 +38,15 @@ public class CountPublicMethodInvocations extends ScanningRecipe<Map<String, Met
     private Boolean generateHTMLView;
 
     public CountPublicMethodInvocations() {
+        this.onlyUninvoked = false;
+        this.generateHTMLView = true;
     }
 
     @JsonCreator
     public CountPublicMethodInvocations(String basePackage, Boolean onlyUninvoked, Boolean generateHTMLView) {
         this.basePackage = basePackage;
-        this.onlyUninvoked = onlyUninvoked;
-        this.generateHTMLView = generateHTMLView;
+        this.onlyUninvoked = onlyUninvoked != null && onlyUninvoked;
+        this.generateHTMLView = generateHTMLView == null || generateHTMLView;
     }
 
     @Override
@@ -60,7 +62,7 @@ public class CountPublicMethodInvocations extends ScanningRecipe<Map<String, Met
     }
 
     public Boolean generateHTMLView() {
-        return generateHTMLView == null || generateHTMLView;
+        return generateHTMLView;
     }
 
     transient MethodInvocationCountReport report = new MethodInvocationCountReport(this);
@@ -79,7 +81,7 @@ public class CountPublicMethodInvocations extends ScanningRecipe<Map<String, Met
     public java.util.Collection<? extends org.openrewrite.SourceFile> generate(Map<String, MethodInvocationCountReport.Row> acc,
             ExecutionContext ctx) {
         acc.values().stream()
-                .filter(row -> !onlyUninvoked() || row.getCount() == 0)
+                .filter(row -> !onlyUninvoked() || row.getCount() != 0)
                 .forEach(row -> report.insertRow(ctx, row));
         return emptyList();
     }
@@ -93,7 +95,7 @@ public class CountPublicMethodInvocations extends ScanningRecipe<Map<String, Met
     }
 
     public boolean onlyUninvoked() {
-        return onlyUninvoked == null || onlyUninvoked;
+        return onlyUninvoked;
     }
 
     private class InvocationCounterVisitor extends JavaIsoVisitor<ExecutionContext> {
@@ -115,7 +117,6 @@ public class CountPublicMethodInvocations extends ScanningRecipe<Map<String, Met
                 && method.getDeclaringType().getFullyQualifiedName().startsWith(basePackage);
 
         private Predicate<J.ClassDeclaration> isTargetClass = classDeclaration -> classDeclaration != null
-                && !J.ClassDeclaration.Kind.Type.Interface.equals(classDeclaration.getKind())
                 && classDeclaration.getType() != null
                 && classDeclaration.getType().getFullyQualifiedName().startsWith(basePackage);
 
