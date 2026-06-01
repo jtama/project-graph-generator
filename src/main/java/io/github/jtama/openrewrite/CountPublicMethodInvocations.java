@@ -141,7 +141,8 @@ public class CountPublicMethodInvocations extends ScanningRecipe<Map<String, Met
             if (!isTestClass.test(getCursor()) && isTargetClass.test(classDeclaration)
                     && shouldCountInvocations.test(method.getMethodType())) {
                 // method.getMethodType() can't be null, verified by predicate
-                acc.computeIfAbsent(getFQDN(method.getMethodType()), MethodInvocationCountReport.Row::new);
+                acc.computeIfAbsent(getFQDN(method.getMethodType()),
+                        (key) -> new MethodInvocationCountReport.Row(key, method.isConstructor()));
             }
             return super.visitMethodDeclaration(method, executionContext);
         }
@@ -150,7 +151,8 @@ public class CountPublicMethodInvocations extends ScanningRecipe<Map<String, Met
         public J.MethodInvocation visitMethodInvocation(J.MethodInvocation method, @NonNull ExecutionContext executionContext) {
             if (!isTestClass.test(getCursor()) && shouldCountInvocations.test(method.getMethodType())) {
                 // method.getMethodType() can't be null, verified by predicate
-                acc.computeIfAbsent(getFQDN(method.getMethodType()), MethodInvocationCountReport.Row::new)
+                acc.computeIfAbsent(getFQDN(method.getMethodType()),
+                        (key) -> new MethodInvocationCountReport.Row(key, method.getMethodType().isConstructor()))
                         .incrementCount();
             }
             return super.visitMethodInvocation(method, executionContext);

@@ -23,8 +23,12 @@ public class MethodInvocationCountReport extends DataTable<MethodInvocationCount
         @Column(displayName = "Count", description = "The number of method invocation.")
         Integer count;
 
-        public Row(String methodName) {
+        @Column(displayName = "Constructor", description = "Indicates if the method is a constructor.")
+        boolean constructor;
+
+        public Row(String methodName, boolean constructor) {
             this.methodName = methodName;
+            this.constructor = constructor;
             count = 0;
         }
 
@@ -38,6 +42,10 @@ public class MethodInvocationCountReport extends DataTable<MethodInvocationCount
 
         public String getMethodName() {
             return methodName;
+        }
+
+        public boolean getConstructor() {
+            return constructor;
         }
     }
 }
