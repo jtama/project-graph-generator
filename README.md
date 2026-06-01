@@ -25,7 +25,7 @@ None of the following are mandatory.
 * **`includeTests`**: Whether the test code should be included in the scan or not.
 * **`generateHTMLView`**: Whether the recipe should generate an HTML result.
 
-This recipe is also able to output its result using [OpenRewrite's data tables](https://docs.openrewrite.org/authoring-recipes/data-tables#step-1-enable-data-table-functionality). If enabled it will produce on csv file
+This recipe is also able to output its result using [OpenRewrite's data tables](https://docs.openrewrite.org/authoring-recipes/data-tables#step-1-enable-data-table-functionality). If enabled it will produce one csv file
 with the graph nodes, and one with the links.
 
 ### `io.github.jtama.openrewrite.CountPublicMethodInvocations`
