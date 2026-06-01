@@ -164,7 +164,7 @@
             <div class="mx-auto flow-root max-w-7xl">
                 <div class="-mx-4 -my-2 overflow-x-auto sm:-mx-6 lg:-mx-8">
                     <div class="inline-block min-w-full py-2 align-middle sm:px-6 lg:px-8">
-                        <table class="min-w-full text-sm bg-background divide-y divide-zinc-200" role="table">
+                        <table class="min-w-full table-fixed text-sm bg-background divide-y divide-zinc-200" role="table">
                             <thead class="bg-zinc-100" role="rowgroup">
                             <tr role="row">
                                 <th scope="col" class="px-3 py-3.5 font-medium text-left text-zinc-900 cursor-pointer hover:bg-zinc-200 transition-colors" id="th-name" aria-sort="ascending">
@@ -292,10 +292,24 @@
         sortedData.forEach(row => {
             const tr = document.createElement('tr');
             tr.className = 'even:bg-zinc-50 border-b border-zinc-200 last:border-0';
-            tr.innerHTML = `
-                <td class="whitespace-nowrap px-3 py-4 text-sm text-zinc-900" style="color: hsl(from hsl(240, 5%, 26%) h s calc( (${row.count} / ${maxCount}) * 100));background-color: rgb(from darkred r g b / calc( ${row.count} / ${maxCount}))">${row.methodName}</td>
-                <td class="whitespace-nowrap px-3 py-4 text-sm text-zinc-900" style="color: hsl(from hsl(240, 5%, 26%) h s calc( (${row.count} / ${maxCount}) * 100));background-color: rgb(from darkred r g b / calc( ${row.count} / ${maxCount}))">${row.count}</td>
-            `;
+
+            const countRatio = row.count / maxCount;
+
+            const cellStyle = `color: hsl(from hsl(240, 5%, 26%) h s calc( (${countRatio}) * 100));background-color: rgb(from darkred r g b / ${countRatio})`;
+
+            const methodTd = document.createElement('td');
+            methodTd.className = 'whitespace-normal break-all px-3 py-4 text-sm text-zinc-900';
+            methodTd.setAttribute('style', cellStyle);
+            // Use textContent to ensure HTML special chars are rendered as plain text.
+            methodTd.textContent = row.methodName;
+
+            const countTd = document.createElement('td');
+            countTd.className = 'whitespace-nowrap px-3 py-4 text-sm text-zinc-900';
+            countTd.setAttribute('style', cellStyle);
+            countTd.textContent = String(row.count);
+
+            tr.appendChild(methodTd);
+            tr.appendChild(countTd);
             invocationTableBody.appendChild(tr);
         });
 
