@@ -16,11 +16,11 @@ public class MethodInvocationCountReport extends DataTable<MethodInvocationCount
     public static class Row {
 
         @Column(displayName = "Method", description = """
-                The fully qualified nameof the method. ie: "java.lang.String#equals"
+                The fully qualified name of the method. ie: "java.lang.String#equals"
                 """)
         String methodName;
 
-        @Column(displayName = "Count", description = "The excluded source file's package, if any.")
+        @Column(displayName = "Count", description = "The number of method invocation.")
         Integer count;
 
         public Row(String methodName) {
