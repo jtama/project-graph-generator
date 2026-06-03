@@ -16,15 +16,22 @@ jobs:
           ref: ${{ github.event.workflow_run.head_sha }} # Checkout the correct commit from the workflow_run
 
       - name: Download Class Diagram artifact
-        uses: actions/download-artifact@v8
+        uses: actions/download-artifact@v7
         with:
+          run-id: ${{ github.event.workflow_run.id }}
           name: class-diagram-html
+          github-token: ${{ secrets.GITHUB_TOKEN }}
           path: . # Download to the root of the workspace
+      - name: Store PR id as variable
+        id: pr
+        run: |
+          echo "id=$(<pr-id.txt)" >> $GITHUB_OUTPUT
+          rm -f pr-id.txt
 
       - name: Define Surge Domain
         id: surge_domain
         run: |
-          PR_NUMBER=${{ github.event.workflow_run.pull_requests[0].number }}
+          PR_NUMBER=${{ steps.pr.outputs.id }}
           SURGE_DOMAIN="pr-$PR_NUMBER-.project-graph-generator-preview.surge.sh"
           echo "SURGE_DOMAIN=$SURGE_DOMAIN" >> $GITHUB_OUTPUT
 
@@ -36,7 +43,7 @@ jobs:
         with:
           action: maintain-one-comment
           github-token: ${{ secrets.GITHUB_TOKEN }}
-          pr-number: ${{ github.event.workflow_run.pull_requests[0].number }}
+          pr-number: ${{ steps.pr.outputs.id }}
           body: |
             🚀 PR Preview for **blog** ${{ github.sha }} has been successfully built!
             * https://${{ steps.surge_domain.outputs.SURGE_DOMAIN }}
@@ -47,7 +54,7 @@ jobs:
         with:
           action: maintain-one-comment
           github-token: ${{ secrets.GITHUB_TOKEN }}
-          pr-number: ${{ github.event.workflow_run.pull_requests[0].number }}
+          pr-number: ${{ steps.pr.outputs.id }}
           body: |
             😭 Deploy PR Preview failed.
           body-marker: <!-- Preview status comment marker -->
