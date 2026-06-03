@@ -33,5 +33,5 @@ jobs:
         uses: actions/upload-artifact@v7
         with:
           name: class-diagram-html
-          path: class-diagram.html
+          path: dist
           retention-days: 3
