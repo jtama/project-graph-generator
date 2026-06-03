@@ -83,7 +83,7 @@
         </div>
 
         <!-- Node Size -->
-        <div class="space-y-2">
+        <div class="space-y-2" id="size-chooser-container">
             <label for="size-chooser" class="block text-sm font-semibold text-slate-700">Node size metric</label>
             <select id="size-chooser"
                     class="w-full px-3 py-2 border border-slate-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 text-sm bg-white">
@@ -93,7 +93,7 @@
         </div>
 
         <!-- Node Color -->
-        <div class="space-y-2">
+        <div class="space-y-2" id="color-chooser-container">
             <label for="color-chooser" class="block text-sm font-semibold text-slate-700">Node color grouping</label>
             <select id="color-chooser"
                     class="w-full px-3 py-2 border border-slate-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 text-sm bg-white">
@@ -103,7 +103,7 @@
         </div>
 
         <!-- Weight Filter -->
-        <div class="space-y-3 pt-2">
+        <div class="space-y-3 pt-2" id="weight-filter-container">
             <div class="flex justify-between items-center">
                 <label for="weight-filter" class="block text-sm font-semibold text-slate-700">Max Node Size</label>
                 <span id="weight-value"
@@ -114,7 +114,7 @@
         </div>
 
         <!-- Color Number -->
-        <div class="space-y-3 pt-2">
+        <div class="space-y-3 pt-2" id="top-communities-number-container">
             <div class="flex justify-between items-center">
                 <label for="top-communities-number" class="block text-sm font-semibold text-slate-700">Top Communities</label>
                 <span id="top-communities-number-value"
@@ -173,12 +173,18 @@
                                             <span id="sort-icon-name" class="w-4 h-4 inline-block"></span>
                                         </div>
                                     </th>
-                                    <th scope="col" class="px-3 py-3.5 font-medium text-left text-zinc-900 cursor-pointer hover:bg-zinc-200 transition-colors" id="th-count" aria-sort="none">
-                                        <div class="inline-flex items-center gap-1 text-zinc-900">
-                                            Invocation count
-                                            <span id="sort-icon-count" class="w-4 h-4 inline-block"></span>
-                                        </div>
-                                    </th>
+                                <th scope="col" class="px-3 py-3.5 font-medium text-left text-zinc-900 cursor-pointer hover:bg-zinc-200 transition-colors" id="th-count" aria-sort="none">
+                                    <div class="inline-flex items-center gap-1 text-zinc-900">
+                                        Invocation count
+                                        <span id="sort-icon-count" class="w-4 h-4 inline-block"></span>
+                                    </div>
+                                </th>
+                                <th scope="col" class="px-3 py-3.5 font-medium text-left text-zinc-900 cursor-pointer hover:bg-zinc-200 transition-colors" id="th-constructor" aria-sort="none">
+                                    <div class="inline-flex items-center gap-1 text-zinc-900">
+                                        Constructor ?
+                                        <span id="sort-icon-constructor" class="w-4 h-4 inline-block"></span>
+                                    </div>
+                                </th>
                                 </tr>
                                 </thead>
                                 <tbody class="divide-y divide-zinc-200 bg-white" role="rowgroup" id="invocation-table-body">
@@ -198,6 +204,7 @@
     // --- UI Interactions ---
     const leftSidebar = document.getElementById('left-sidebar');
     const rightSidebar = document.getElementById('right-sidebar');
+    const rightToggleBtn = document.getElementById('right-toggle-btn');
 
     // Mobile/Init check: On very small screens, maybe start closed? Keeping strict "Left Open" for now per plan.
 
@@ -222,6 +229,12 @@
     const tabBtnTable = document.getElementById('tab-btn-table');
     const tabContentGraph = document.getElementById('tab-content-graph');
     const tabContentTable = document.getElementById('tab-content-table');
+
+    // --- Filter containers ---
+    const sizeChooserContainer = document.getElementById('size-chooser-container');
+    const colorChooserContainer = document.getElementById('color-chooser-container');
+    const weightFilterContainer = document.getElementById('weight-filter-container');
+    const topCommunitiesNumberContainer = document.getElementById('top-communities-number-container');
 
     // @formatter:off
     let invocationData;
@@ -255,8 +268,10 @@
     const invocationTableBody = document.getElementById('invocation-table-body');
     const sortIconName = document.getElementById('sort-icon-name');
     const sortIconCount = document.getElementById('sort-icon-count');
+    const sortIconConstructor = document.getElementById('sort-icon-constructor');
     const thName = document.getElementById('th-name');
     const thCount = document.getElementById('th-count');
+    const thConstructor = document.getElementById('th-constructor');
 
     const iconUp = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="icon icon-tabler-chevron-up size-4"><path stroke="none" d="M0 0h24v24H0z" fill="none"></path><path d="M6 15l6 -6l6 6"></path></svg>`;
     const iconDown = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="icon icon-tabler-chevron-down size-4"><path stroke="none" d="M0 0h24v24H0z" fill="none"></path><path d="M6 9l6 6l6 -6"></path></svg>`;
@@ -308,20 +323,29 @@
             countTd.setAttribute('style', cellStyle);
             countTd.textContent = String(row.count);
 
+            const constructorTd = document.createElement('td');
+            constructorTd.className = 'whitespace-nowrap px-3 py-4 text-sm text-zinc-900';
+            constructorTd.setAttribute('style', cellStyle);
+            constructorTd.textContent = String(row.constructor);
+
             tr.appendChild(methodTd);
             tr.appendChild(countTd);
+            tr.appendChild(constructorTd);
             invocationTableBody.appendChild(tr);
         });
 
         if (sortIconName) sortIconName.innerHTML = sortKey === 'methodName' ? (sortDir === 'asc' ? iconUp : iconDown) : '';
         if (sortIconCount) sortIconCount.innerHTML = sortKey === 'count' ? (sortDir === 'asc' ? iconUp : iconDown) : '';
+        if (sortIconConstructor) sortIconConstructor.innerHTML = sortKey === 'constructor' ? (sortDir === 'asc' ? iconUp : iconDown) : '';
         
         if (thName) thName.setAttribute('aria-sort', sortKey === 'methodName' ? (sortDir === 'asc' ? 'ascending' : 'descending') : 'none');
         if (thCount) thCount.setAttribute('aria-sort', sortKey === 'count' ? (sortDir === 'asc' ? 'ascending' : 'descending') : 'none');
+        if (thConstructor) thConstructor.setAttribute('aria-sort', sortKey === 'constructor' ? (sortDir === 'asc' ? 'ascending' : 'descending') : 'none');
     }
 
     if (thName) thName.addEventListener('click', () => setSort('methodName'));
     if (thCount) thCount.addEventListener('click', () => setSort('count'));
+    if (thConstructor) thConstructor.addEventListener('click', () => setSort('constructor'));
 
     function setSort(key) {
         if (sortKey === key) {
@@ -343,11 +367,22 @@
             tabBtnTable.className = 'px-4 py-2 rounded-full text-sm font-semibold text-slate-700 hover:bg-slate-100 transition-colors focus:outline-none';
             tabContentGraph.classList.remove('hidden');
             tabContentTable.classList.add('hidden');
+            rightToggleBtn.classList.remove('hidden');
+            sizeChooserContainer.classList.remove('hidden');
+            colorChooserContainer.classList.remove('hidden');
+            weightFilterContainer.classList.remove('hidden');
+            topCommunitiesNumberContainer.classList.remove('hidden');
         } else {
             tabBtnTable.className = 'px-4 py-2 rounded-full text-sm font-semibold bg-indigo-600 text-white shadow transition-colors focus:outline-none';
             tabBtnGraph.className = 'px-4 py-2 rounded-full text-sm font-semibold text-slate-700 hover:bg-slate-100 transition-colors focus:outline-none';
             tabContentTable.classList.remove('hidden');
             tabContentGraph.classList.add('hidden');
+            rightSidebar.classList.add('translate-x-full');
+            rightToggleBtn.classList.add('hidden');
+            sizeChooserContainer.classList.add('hidden');
+            colorChooserContainer.classList.add('hidden');
+            weightFilterContainer.classList.add('hidden');
+            topCommunitiesNumberContainer.classList.add('hidden');
         }
     }
 
@@ -374,6 +409,10 @@
         tabBtnGraph.style.display = 'none';
         tabContentTable.classList.remove('hidden');
         tabContentGraph.classList.add('hidden');
+        sizeChooserContainer.classList.add('hidden');
+        colorChooserContainer.classList.add('hidden');
+        weightFilterContainer.classList.add('hidden');
+        topCommunitiesNumberContainer.classList.add('hidden');
     }
 
     // @formatter:on
