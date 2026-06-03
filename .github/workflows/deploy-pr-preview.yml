@@ -11,10 +11,6 @@ jobs:
     runs-on: ubuntu-latest
     if: github.event.workflow_run.conclusion == 'success'
     steps:
-      - uses: actions/checkout@v6
-        with:
-          ref: ${{ github.event.workflow_run.head_sha }} # Checkout the correct commit from the workflow_run
-
       - name: Download Class Diagram artifact
         uses: actions/download-artifact@v7
         with:
@@ -36,7 +32,7 @@ jobs:
           echo "SURGE_DOMAIN=$SURGE_DOMAIN" >> $GITHUB_OUTPUT
 
       - name: Deploy to Surge
-        run: ls -al . && ls -al dist && npx surge dist/class-diagram.html https://${{ steps.surge_domain.outputs.SURGE_DOMAIN }} --token ${{ secrets.SURGE_TOKEN }}
+        run: npx surge ./ https://${{ steps.surge_domain.outputs.SURGE_DOMAIN }} --token ${{ secrets.SURGE_TOKEN }}
 
       - name: Update PR status comment on success
         uses: quarkusio/action-helpers@main
