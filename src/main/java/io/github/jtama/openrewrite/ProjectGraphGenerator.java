@@ -169,23 +169,23 @@ public class ProjectGraphGenerator extends ScanningRecipe<ProjectGraphGenerator.
             @Override
             public @Nullable JavaType visitType(@Nullable JavaType javaType, ExecutionContext executionContext) {
                 if (javaType != null && !(javaType instanceof JavaType.Unknown)) {
-                    addLinkForType(javaType, executionContext, 0);
+                    addLinkForType(javaType, executionContext);
                 }
-                return javaType;
+                return super.visitType(javaType, executionContext);
             }
 
-            private void addLinkForType(JavaType jType, ExecutionContext ctx, Integer depth) {
+            private void addLinkForType(JavaType jType, ExecutionContext ctx) {
                 if (jType == null || jType instanceof JavaType.Primitive || jType instanceof JavaType.Unknown
-                        || jType instanceof JavaType.Array || jType instanceof JavaType.GenericTypeVariable) {
+                        || jType instanceof JavaType.Array || jType instanceof JavaType.GenericTypeVariable
+                        || jType instanceof JavaType.Method || jType instanceof JavaType.Variable) {
                     return;
                 }
 
                 if (jType instanceof JavaType.FullyQualified fq) {
                     addLink(fq);
-                    return;
+                } else {
+                    javaTypesNotHandledReport.insertRow(ctx, new JavaTypesNotHandledReport.Row(jType));
                 }
-
-                javaTypesNotHandledReport.insertRow(ctx, new JavaTypesNotHandledReport.Row(jType));
             }
 
             private boolean isPackageExcluded(String packageName) {

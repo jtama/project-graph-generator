@@ -21,4 +21,11 @@ jobs:
           java-version: 21
           cache: 'maven'
       - name: Build project
-        run: mvn -B clean verify --file pom.xml
+        run: mvn -B clean verify
+      - name: Generate Class Diagram
+        run: mvn -U org.openrewrite.maven:rewrite-maven-plugin:run -Drewrite.recipeArtifactCoordinates=io.github.jtama:project-graph-generator:999-SNAPSHOT -Drewrite.activeRecipes=io.github.jtama.openrewrite.ProjectAerialViewGenerator
+      - name: Upload Class Diagram artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: class-diagram-html
+          path: class-diagram.html
