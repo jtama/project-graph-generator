@@ -36,7 +36,7 @@ jobs:
           echo "SURGE_DOMAIN=$SURGE_DOMAIN" >> $GITHUB_OUTPUT
 
       - name: Deploy to Surge
-        run: npx surge ./class-diagram.html https://${{ steps.surge_domain.outputs.SURGE_DOMAIN }} --token ${{ secrets.SURGE_TOKEN }}
+        run: ls -al . && ls -al dist && npx surge dist/class-diagram.html https://${{ steps.surge_domain.outputs.SURGE_DOMAIN }} --token ${{ secrets.SURGE_TOKEN }}
 
       - name: Update PR status comment on success
         uses: quarkusio/action-helpers@main
