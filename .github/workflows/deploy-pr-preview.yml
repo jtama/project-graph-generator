@@ -28,7 +28,7 @@ jobs:
         id: surge_domain
         run: |
           PR_NUMBER=${{ steps.pr.outputs.id }}
-          SURGE_DOMAIN="pr-$PR_NUMBER-.project-graph-generator-preview.surge.sh"
+          SURGE_DOMAIN="pr-$PR_NUMBER.project-graph-generator-preview.surge.sh"
           echo "SURGE_DOMAIN=$SURGE_DOMAIN" >> $GITHUB_OUTPUT
 
       - name: Deploy to Surge
