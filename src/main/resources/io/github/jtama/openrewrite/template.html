@@ -113,6 +113,17 @@
                    class="w-full h-2 bg-slate-200 rounded-lg appearance-none cursor-pointer accent-indigo-600 hover:accent-indigo-700">
         </div>
 
+        <!-- Repulsion Force Slider -->
+        <div class="space-y-3 pt-2" id="repulsion-filter-container">
+            <div class="flex justify-between items-center">
+                <label for="repulsion-filter" class="block text-sm font-semibold text-slate-700">Repulsion Force</label>
+                <span id="repulsion-value"
+                      class="inline-flex items-center justify-center px-2 py-1 text-xs font-bold leading-none text-indigo-100 bg-indigo-600 rounded">-50</span>
+            </div>
+            <input type="range" id="repulsion-filter" min="-200" max="0" step="1"
+                   class="w-full h-2 bg-slate-200 rounded-lg appearance-none cursor-pointer accent-indigo-600 hover:accent-indigo-700">
+        </div>
+
         <!-- Color Number -->
         <div class="space-y-3 pt-2" id="top-communities-number-container">
             <div class="flex justify-between items-center">
@@ -501,6 +512,14 @@
         .attr("value", 30);
     topCommunitiesValueSpan.text(30);
 
+    const repulsionSlider = d3.select("#repulsion-filter");
+    const repulsionValueSpan = d3.select("#repulsion-value");
+    repulsionSlider
+        .attr("min", -200)
+        .attr("max", 0)
+        .attr("value", -50);
+    repulsionValueSpan.text(-50);
+
     let lastCommunityMethod = null;
 
     function applyFilters() {
@@ -585,6 +604,12 @@
     topCommunitiesSlider.on("input", function () {
         topCommunitiesValueSpan.text(this.value);
         applyFilters();
+    });
+
+    repulsionSlider.on("input", function () {
+        repulsionValueSpan.text(this.value);
+        simulation.force("charge").strength(this.value);
+        simulation.alpha(1).restart(); // Restart simulation to apply new force immediately
     });
 
 
