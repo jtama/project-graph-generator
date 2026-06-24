@@ -9,7 +9,7 @@ jobs:
     name: Remove PR Preview
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
       - name: Define Surge Domain
         id: surge_domain
         run: |
