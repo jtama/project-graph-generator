@@ -5,6 +5,32 @@
 
 ![Small previex](images/project-graph-preview.gif)
 
+## Features
+
+The generated HTML pages include interactive filtering capabilities to focus your analysis:
+
+### Graph View Filters
+- **Search for class**: Find specific classes by name
+- **Exclude patterns**: Filter out classes matching patterns (e.g., `*Controller`, `*Mapper`)
+- **Node size metric**: Choose to size nodes by incoming or outgoing connections
+- **Node color grouping**: Group nodes by Louvain community detection or artifact ID
+- **Max Node Size**: Filter nodes by their connection count
+- **Top Communities**: Display only the top N communities
+
+### Method Count View Filters  
+- **Search for method**: Find specific methods by name
+- **Exclude patterns**: Filter out methods matching patterns (e.g., `*Controller#*`, `*#<constructor>`)
+- **Sorting**: Sort methods by name or invocation count
+- **Filtering**: Show only methods with specific invocation counts
+
+### Pattern Syntax
+
+Exclusion patterns support glob-style wildcards:
+- `*` - Matches any sequence of characters
+- `?` - Matches a single character
+- Semicolon-separated for multiple patterns: `*Controller;*Mapper;*Test`
+- For method invocations: Use fully qualified name with method, e.g., `com.example.MyClass#methodName`
+
 ## Recipes
 
 Two main recipes are available in this repository.
