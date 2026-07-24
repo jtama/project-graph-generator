@@ -82,6 +82,14 @@
             </div>
         </div>
 
+        <!-- Exclusion Patterns -->
+        <div class="space-y-2">
+            <label for="exclude" class="block text-sm font-semibold text-slate-700">Exclude patterns</label>
+            <input type="text" id="exclude" placeholder="e.g. *Controller;*Mapper"
+                   class="w-full px-3 py-2 border border-slate-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 text-sm transition-shadow">
+            <p class="text-xs text-slate-500">Semicolon-separated patterns (e.g., *Controller;*Mapper;*#&lt;constructor&gt;)</p>
+        </div>
+
         <!-- Node Size -->
         <div class="space-y-2" id="size-chooser-container">
             <label for="size-chooser" class="block text-sm font-semibold text-slate-700">Node size metric</label>
@@ -275,6 +283,7 @@
     let sortKey = 'count';
     let sortDir = 'desc';
     let maxCount;
+    let currentExcludePatterns = [];
 
     const invocationTableBody = document.getElementById('invocation-table-body');
     const sortIconName = document.getElementById('sort-icon-name');
@@ -289,10 +298,14 @@
 
     function renderInvocationTable(searchTerm = '') {
         if (!invocationTableBody) return;
-        
+
         let filteredData = invocationData;
+        filteredData = filteredData.filter(row => {
+            const methodName = String(row.methodName || row.name);
+            return !matchesAnyPattern(methodName, currentExcludePatterns);
+        });
         if (searchTerm) {
-            filteredData = invocationData.filter(row => String(row.methodName || row.name).toLowerCase().includes(searchTerm));
+            filteredData = filteredData.filter(row => String(row.methodName || row.name).toLowerCase().includes(searchTerm));
         }
 
         const sortedData = [...filteredData].sort((a, b) => {
@@ -522,12 +535,58 @@
 
     let lastCommunityMethod = null;
 
+    function globToRegex(glob) {
+        let regex = '^';
+        for (let i = 0; i < glob.length; i++) {
+            const c = glob[i];
+            switch (c) {
+                case '*':
+                    regex += '.*';
+                    break;
+                case '?':
+                    regex += '.';
+                    break;
+                case '.':
+                case '|':
+                case '+':
+                case '(':
+                case ')':
+                case '[':
+                case ']':
+                case '{':
+                case '}':
+                case '^':
+                case '$':
+                case '\\':
+                    regex += '\\' + c;
+                    break;
+                default:
+                    regex += c;
+            }
+        }
+        regex += '$';
+        return regex;
+    }
+
+    function buildExclusionPatterns(patternsStr) {
+        if (!patternsStr || !patternsStr.trim()) {
+            return [];
+        }
+        const patterns = patternsStr.split(';').map(p => p.trim()).filter(p => p.length > 0);
+        return patterns.map(p => new RegExp(globToRegex(p)));
+    }
+
+    function matchesAnyPattern(text, patterns) {
+        return patterns.some(p => p.test(text));
+    }
+
     function applyFilters() {
         const searchTerm = d3.select("#search").node().value.toLowerCase();
         const sizeOption = sizeChooser.node().value;
         communityMethod = community.node().value;
         const maxWeight = +weightSlider.node().value;
         const topCommunitiesValue = +topCommunitiesSlider.node().value;
+        currentExcludePatterns = buildExclusionPatterns(d3.select("#exclude").node().value);
 
         if (sizeOption === "incoming") {
             sizeExtractor = node => node.incomingConnections;
@@ -568,7 +627,8 @@
         const topCommunities = new Set(sortedCommunities.slice(0, topCommunitiesValue).map(c => c.community));
 
         const filteredNodes = originalGraphData.nodes.filter(n => {
-            return sizeExtractor(n) <= maxWeight && topCommunities.has(n.community);
+            const isExcluded = matchesAnyPattern(n.className, currentExcludePatterns);
+            return !isExcluded && sizeExtractor(n) <= maxWeight && topCommunities.has(n.community);
         });
 
         const filteredNodeIds = new Set(filteredNodes.map(n => n.className));
@@ -595,6 +655,7 @@
     }
 
     d3.select("#search").on("input", applyFilters);
+    d3.select("#exclude").on("input", applyFilters);
     sizeChooser.on("input", applyFilters);
     community.on("input", applyFilters);
     weightSlider.on("input", function () {
@@ -616,16 +677,18 @@
     function clickHandler(event, d) {
         if (selectedNode === d) {
             selectedNode = null;
-            allLinks.classed('fade', false);
+            allLinks.style("opacity", 1);
+            allNodes.style("opacity", 1);
         } else {
             selectedNode = d;
             const linkedNodes = new Set();
             linkedNodes.add(d.className);
             currentLinks.forEach(l => {
-                if (l.source === d.className) linkedNodes.add(l.target);
-                if (l.target === d.className) linkedNodes.add(l.source);
+                if (l.source === d.className) linkedNodes.add(l.target.className);
+                if (l.target === d.className) linkedNodes.add(l.source.className);
             });
-            allLinks.classed('fade', l => l.source !== d.className && l.target !== d.className);
+            allLinks.style("opacity", l => l.source.className === d.className || l.target.className === d.className ? 1 : 0.1);
+            allNodes.style("opacity", n => linkedNodes.has(n.className) ? 1 : 0.1);
         }
     }
 

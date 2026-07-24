@@ -42,7 +42,7 @@ jobs:
           pr-number: ${{ steps.pr.outputs.id }}
           body: |
             🚀 PR Preview for **blog** ${{ github.sha }} has been successfully built!
-            * https://${{ steps.surge_domain.outputs.SURGE_DOMAIN }}
+            * https://${{ steps.surge_domain.outputs.SURGE_DOMAIN }}/class-diagram.html
           body-marker: <!-- Preview status comment marker -->
       - name: Update PR status comment on failure
         uses: quarkusio/action-helpers@main
