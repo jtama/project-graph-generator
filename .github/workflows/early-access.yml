@@ -16,7 +16,7 @@ jobs:
         uses: actions/setup-java@v6
         with:
           distribution: temurin
-          java-version: 21
+          java-version: 21.0.12+101.0.LTS
           cache: 'maven'
       - uses: n1hility/cancel-previous-runs@v3
         with:
@@ -45,7 +45,7 @@ jobs:
         uses: actions/setup-java@v6
         with:
           distribution: temurin
-          java-version: 21
+          java-version: 21.0.12+101.0.LTS
           cache: 'maven'
       - name: 'Build artefacts'
         run: mvn -B -P release clean deploy
